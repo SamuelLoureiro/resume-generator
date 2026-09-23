@@ -41,3 +41,14 @@
 - **Modelo usado:** Gemini Flash (execução)
 - **Desafios:** Nenhum
 - **Próximos passos:** Tarefa 1.3 — Criação do template `data/candidate_profile.yaml` (dados do candidato) e Tarefa 1.4 — Template LaTeX (`templates/resume.tex.j2`)
+
+## 2026-09-23 — Tarefa 1.3: Criação da Base de Perfil do Candidato (YAML)
+- **O que foi feito:**
+  - Criação do arquivo estruturado e comentado `data/candidate_profile.yaml` com todas as seções mapeadas: contato, resumo, educação (graduação, disciplinas, bolsas), experiências (IC, projetos), portfólio de projetos práticos em IA/RAG, habilidades técnicas/soft skills categorizadas, idiomas e certificações.
+  - Adição de teste unitário automatizado em `tests/test_schemas.py` garantindo que o arquivo YAML default seja sempre 100% válido contra o schema `CandidateProfile`.
+  - Suíte de testes passando com 7/7 sucessos.
+- **Decisões tomadas:**
+  - Estruturação do YAML em português nos valores e inglês nas chaves, mantendo facilidade de preenchimento para o usuário e aderência estrita aos modelos Pydantic.
+- **Modelo usado:** Gemini Flash (execução)
+- **Desafios:** Nenhum
+- **Próximos passos:** Tarefa 1.4 — Template LaTeX (`templates/resume.tex.j2`) e Tarefas 1.5/1.6 — Curadoria da base de conhecimento (boas práticas e RH)

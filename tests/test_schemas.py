@@ -218,3 +218,18 @@ def test_tailored_resume_latex_escaping() -> None:
     assert r"\_" in context["experiences"][0]["organization"]
     assert r"\$" in context["projects"][0]["bullets"][0]
     assert r"\#" in context["skills"][0]["skills"][2]
+
+
+def test_default_candidate_profile_yaml_loads() -> None:
+    """Test that the default candidate_profile.yaml loads and validates correctly."""
+    default_yaml_path = Path("data/candidate_profile.yaml")
+    assert default_yaml_path.exists(), "data/candidate_profile.yaml must exist"
+
+    profile = CandidateProfile.from_yaml(default_yaml_path)
+    assert profile.contact.full_name is not None
+    assert len(profile.contact.full_name) > 0
+    assert len(profile.education) > 0
+    assert len(profile.experiences) > 0
+    assert len(profile.projects) > 0
+    assert len(profile.skills.programming_languages) > 0
+    assert len(profile.languages) > 0

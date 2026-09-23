@@ -1,0 +1,174 @@
+# ==============================================================================
+# PERFIL DO CANDIDATO — BASE DE DADOS PESSOAIS
+# ==============================================================================
+# Este arquivo é a fonte única de verdade sobre suas informações.
+# O sistema RAG NUNCA inventará experiências ou dados não contidos aqui.
+# Preencha ou ajuste os campos abaixo com suas informações reais.
+# ==============================================================================
+
+contact:
+  full_name: "Samuel Silva"
+  email: "samuel.contato@email.com"
+  phone: "+55 (11) 98765-4321"
+  location: "São Paulo, SP - Brasil"
+  linkedin_url: "https://www.linkedin.com/in/samuel-perfil"
+  github_url: "https://github.com/samuel-dev"
+  portfolio_url: "https://samuel-portfolio.dev"
+
+# Resumo ou bio geral (opcional: o RAG adaptará o objetivo para cada vaga)
+summary: >-
+  Estudante de graduação com forte interesse em Inteligência Artificial,
+  Engenharia de Machine Learning e desenvolvimento de software. Experiência
+  prática em projetos de Processamento de Linguagem Natural (PLN), sistemas RAG
+  e análise de dados com Python.
+
+# Formação acadêmica (graduação atual, cursos técnicos ou anteriores)
+education:
+  - institution: "Universidade de São Paulo (USP)"
+    degree: "Bacharelado em Ciência da Computação"
+    start_date: "03/2023"
+    end_date: "12/2026"
+    current: true
+    gpa_or_honors: "Coeficiente de Rendimento: 8.5 / 10.0"
+    relevant_coursework:
+      - "Estruturas de Dados e Algoritmos"
+      - "Inteligência Artificial e Aprendizado de Máquina"
+      - "Sistemas de Bancos de Dados"
+      - "Cálculo e Álgebra Linear Aplicada à Computação"
+    highlights:
+      - "Bolsista de Iniciação Científica em Inteligência Artificial"
+      - "Monitor da disciplina de Introdução à Ciência da Computação"
+
+# Experiências profissionais, acadêmicas ou estágios anteriores
+# Se ainda não tiver estágio formal, pode listar iniciação científica, empresa júnior, monitoria, etc.
+experiences:
+  - title: "Pesquisador de Iniciação Científica (IA e NLP)"
+    organization: "Laboratório de Inteligência Computacional - USP"
+    location: "São Paulo, SP"
+    start_date: "08/2024"
+    end_date: "Presente"
+    current: true
+    bullets:
+      - "Desenvolveu pipelines de processamento de texto e embeddings para recuperação semântica de artigos científicos."
+      - "Avaliou métricas de relevância e fidelidade em respostas de modelos de linguagem (LLMs) usando RAGAS."
+      - "Colaborou na escrita de artigo técnico submetido a simpósio nacional de informática."
+    technologies:
+      - "Python"
+      - "PyTorch"
+      - "Hugging Face"
+      - "LlamaIndex"
+      - "Git"
+
+  - title: "Membro Desenvolvedor / Trainee"
+    organization: "Empresa Júnior de Computação"
+    location: "São Paulo, SP"
+    start_date: "03/2023"
+    end_date: "07/2024"
+    current: false
+    bullets:
+      - "Desenvolveu sistemas web e APIs RESTful para pequenas e médias empresas utilizando FastAPI e PostgreSQL."
+      - "Implementou testes unitários e boas práticas de integração contínua (CI/CD) com GitHub Actions."
+      - "Participou de cerimônias ágeis (Scrum/Kanban) em equipe multidisciplinar."
+    technologies:
+      - "Python"
+      - "FastAPI"
+      - "PostgreSQL"
+      - "Docker"
+      - "Git"
+
+# Projetos práticos e portfólio (GitHub, hackathons, projetos pessoais)
+projects:
+  - name: "Gerador de Currículos com RAG"
+    description: "Sistema inteligente para geração automatizada de currículos personalizados para vagas de estágio."
+    url: "https://github.com/samuel-dev/gerador-curriculos"
+    highlight: true
+    bullets:
+      - "Construiu pipeline RAG completo usando LlamaIndex, Google Gemini e ChromaDB para busca semântica híbrida."
+      - "Implementou extração de requisitos de vagas e otimização semântica alinhada a sistemas ATS de recrutamento."
+      - "Desenvolveu pipeline de compilação em LaTeX via Jinja2 garantindo formatação profissional em PDF de 1 página."
+      - "Interface interativa criada com Gradio para upload de vagas e visualização em tempo real."
+    technologies:
+      - "Python"
+      - "LlamaIndex"
+      - "Google Gemini"
+      - "ChromaDB"
+      - "Gradio"
+      - "LaTeX"
+
+  - name: "Classificador Semântico de Notícias Financeiras"
+    description: "Modelo de aprendizado supervisionado para análise de sentimento e impacto no mercado financeiro."
+    url: "https://github.com/samuel-dev/sentiment-news-nlp"
+    highlight: false
+    bullets:
+      - "Coletou e tratou mais de 50.000 notícias econômicas via web scraping automatizado."
+      - "Treinou modelos de classificação com scikit-learn e finetuning de BERT com acurácia de 88%."
+      - "Construiu dashboard interativo para visualização de métricas e tendências temporais."
+    technologies:
+      - "Python"
+      - "Scikit-Learn"
+      - "Pandas"
+      - "Hugging Face Transformers"
+      - "Streamlit"
+
+# Habilidades técnicas e comportamentais
+skills:
+  programming_languages:
+    - "Python"
+    - "SQL"
+    - "C/C++"
+    - "JavaScript/TypeScript"
+
+  frameworks_and_libraries:
+    - "LlamaIndex"
+    - "LangChain"
+    - "PyTorch"
+    - "Scikit-Learn"
+    - "FastAPI"
+    - "Pandas"
+    - "NumPy"
+
+  databases:
+    - "PostgreSQL"
+    - "ChromaDB"
+    - "SQLite"
+    - "Redis"
+
+  tools_and_platforms:
+    - "Git"
+    - "GitHub"
+    - "Docker"
+    - "Linux (Ubuntu/Debian)"
+    - "LaTeX"
+    - "VS Code"
+
+  soft_skills:
+    - "Trabalho em equipe"
+    - "Resolução analítica de problemas"
+    - "Comunicação técnica e interpessoal"
+    - "Autonomia e capacidade de aprendizado rápido"
+    - "Organização e proatividade"
+
+# Idiomas e níveis de proficiência
+languages:
+  - language: "Português"
+    proficiency: "Nativo"
+  - language: "Inglês"
+    proficiency: "Avançado (C1) — Leitura técnica, escrita e conversação fluente"
+  - language: "Espanhol"
+    proficiency: "Básico"
+
+# Certificações, cursos livres ou workshops relevantes
+certifications:
+  - name: "Deep Learning Specialization"
+    issuer: "DeepLearning.AI / Coursera"
+    issue_date: "06/2024"
+    url: "https://coursera.org/verify/specialization/EXEMPLO"
+  - name: "Machine Learning with Python"
+    issuer: "IBM / Coursera"
+    issue_date: "12/2023"
+    url: "https://coursera.org/verify/EXEMPLO"
+
+# Atividades extracurriculares, voluntariado, maratonas de programação
+additional_info:
+  - "Participação na Maratona SBC de Programação (Fase Regional 2023 e 2024)"
+  - "Voluntário em oficina de introdução à programação para alunos de escolas públicas"
