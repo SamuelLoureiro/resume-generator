@@ -26,3 +26,18 @@
 - **Modelo usado:** Gemini Flash (execução)
 - **Desafios:** Nenhum
 - **Próximos passos:** Tarefa 1.2 — Schemas Pydantic (`src/data/*.py`)
+
+## 2026-09-23 — Tarefa 1.2: Modelagem de Schemas Pydantic e Regras de Segurança
+- **O que foi feito:**
+  - Adicionadas regras de segurança e privacidade em `.agents/GEMINI.md` (blindagem do `.env` contra inspeção de agentes).
+  - Implementação de `src/data/candidate.py` com schemas completos (`CandidateProfile`, `ContactInfo`, `Education`, `Experience`, `Project`, `Skills`, etc.) e suporte a importação/exportação YAML.
+  - Implementação de `src/data/job_posting.py` com estrutura de requisitos, diferenciais e gerador de queries de busca semântica (`to_search_query`).
+  - Implementação de `src/data/resume.py` com suporte à sanitização/escape automático de caracteres especiais de LaTeX (`&`, `%`, `$`, `#`, `_`, etc.) via `to_latex_context()`.
+  - Exportação unificada dos modelos em `src/data/__init__.py`.
+  - Criação de suíte de testes unitários em `tests/test_schemas.py` com 6 testes aprovados (100% de sucesso).
+- **Decisões tomadas:**
+  - Sanitização profunda de strings para LaTeX em nível de modelo de dados para prevenir falhas de compilação no Jinja2/pdflatex.
+  - Execução e validação de testes 100% offline, sem necessidade de credenciais de API.
+- **Modelo usado:** Gemini Flash (execução)
+- **Desafios:** Nenhum
+- **Próximos passos:** Tarefa 1.3 — Criação do template `data/candidate_profile.yaml` (dados do candidato) e Tarefa 1.4 — Template LaTeX (`templates/resume.tex.j2`)

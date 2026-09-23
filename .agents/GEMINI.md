@@ -28,3 +28,7 @@ Não criar arquivos fora da estrutura sem justificativa.
 - Testes unitários para toda lógica de negócio
 - Tratar edge cases (vaga sem requisitos, perfil incompleto, etc.)
 - O currículo gerado NUNCA deve inventar informações — usar apenas dados de `data/candidate_profile.yaml`
+
+## Segurança e Privacidade
+- O agente NUNCA deve ler, exibir, imprimir ou acessar arquivos `.env` ou variáveis de ambiente com credenciais reais.
+- Testes automatizados e verificações locais devem utilizar mocks ou dados sintéticos.
