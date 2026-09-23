@@ -52,3 +52,16 @@
 - **Modelo usado:** Gemini Flash (execução)
 - **Desafios:** Nenhum
 - **Próximos passos:** Tarefa 1.4 — Template LaTeX (`templates/resume.tex.j2`) e Tarefas 1.5/1.6 — Curadoria da base de conhecimento (boas práticas e RH)
+
+## 2026-09-23 — Tarefa 1.4: Criação do Template LaTeX Dinâmico (Jinja2)
+- **O que foi feito:**
+  - Criação do template LaTeX modular em `templates/resume.tex.j2` otimizado para currículos de estágio em 1 página.
+  - Utilização de delimitadores Jinja2 não-conflitantes (`<% ... %>` para blocos e `<< ... >>` para variáveis) eliminando qualquer colisão com chaves (`{}`) e comandos nativos do LaTeX.
+  - Implementação de seções: Cabeçalho com links (e-mail, LinkedIn, GitHub, portfólio), Objetivo Profissional alinhado à vaga, Formação Acadêmica, Experiências com bullets de impacto e tecnologias, Projetos em Destaque, Habilidades Técnicas categorizadas, Idiomas e Certificações.
+  - Criação de teste unitário em `tests/test_template.py` validando renderização completa, injeção de dados de `TailoredResume.to_latex_context()` e escape de caracteres especiais.
+  - Suíte de testes atualizada: 8/8 testes passando com sucesso no `pytest`.
+- **Decisões tomadas:**
+  - Adoção de pacotes padrão e leves do LaTeX (`article`, `geometry`, `titlesec`, `enumitem`, `hyperref`, `xcolor`), compatíveis com qualquer distribuição LaTeX sem necessidade de fontes ou pacotes proprietários.
+- **Modelo usado:** Gemini Flash (execução)
+- **Desafios:** Nenhum
+- **Próximos passos:** Tarefas 1.5 e 1.6 — Curadoria da base de conhecimento (boas práticas de currículo e recrutamento de estágio em `src/knowledge_base/`)

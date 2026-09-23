@@ -1,0 +1,184 @@
+\documentclass[10pt,a4paper]{article}
+
+% --- PACOTES BÁSICOS E TIPOGRAFIA ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=0.55in]{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+% --- CORES E LINKS ---
+\definecolor{primary}{RGB}{20, 24, 33}      % Quase preto para máxima legibilidade
+\definecolor{accent}{RGB}{25, 75, 140}      % Azul sóbrio profissional
+\definecolor{subtext}{RGB}{85, 95, 110}     % Cinza escuro para datas/locais
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=accent,
+    urlcolor=accent,
+    pdfauthor={<< header.full_name >>},
+    pdftitle={Curriculo - << header.full_name >> - << target_job_title >>}
+}
+
+% --- FORMATAÇÃO DE PÁGINA E ESPAÇAMENTOS ---
+\pagestyle{empty}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% --- FORMATAÇÃO DE SEÇÕES ---
+\titleformat{\section}
+  {\bfseries\large\color{accent}\uppercase}
+  {}{0em}
+  {}[\color{accent}\titlerule\vspace{-4pt}]
+
+\titlespacing*{\section}{0pt}{8pt}{4pt}
+
+% --- LISTAS E BULLETS COMPACTOS ---
+\setlist[itemize]{
+    leftmargin=1.2em,
+    label={\small\textbullet},
+    itemsep=1.5pt,
+    topsep=1pt,
+    parsep=0pt,
+    partopsep=0pt
+}
+
+\begin{document}
+
+% ==============================================================================
+% CABEÇALHO / HEADER
+% ==============================================================================
+\begin{center}
+    {\Huge\bfseries\color{primary} << header.full_name >>}\\[3pt]
+    \small\color{subtext}
+    << header.location >>
+    \quad|\quad << header.phone >>
+    \quad|\quad \href{mailto:<< header.email >>}{<< header.email >>}
+    <% if header.linkedin_url %>
+    \quad|\quad \href{<< header.linkedin_url >>}{LinkedIn}
+    <% endif %>
+    <% if header.github_url %>
+    \quad|\quad \href{<< header.github_url >>}{GitHub}
+    <% endif %>
+    <% if header.portfolio_url %>
+    \quad|\quad \href{<< header.portfolio_url >>}{Portfólio}
+    <% endif %>
+\end{center}
+\vspace{-6pt}
+
+% ==============================================================================
+% OBJETIVO / RESUMO PROFISSIONAL
+% ==============================================================================
+<% if objective_or_summary %>
+\section{Objetivo Profissional}
+\small\color{primary}
+<< objective_or_summary >>
+<% endif %>
+
+% ==============================================================================
+% EDUCAÇÃO / FORMAÇÃO ACADÊMICA
+% ==============================================================================
+<% if education %>
+\section{Formação Acadêmica}
+<% for edu in education %>
+\noindent
+\textbf{\color{primary} << edu.degree >>}, << edu.institution >> \hfill {\small\color{subtext} << edu.period >>}
+<% if edu.location %>
+\newline {\footnotesize\color{subtext} << edu.location >>}
+<% endif %>
+<% if edu.highlights %>
+\begin{itemize}
+    <% for highlight in edu.highlights %>
+    \item \small << highlight >>
+    <% endfor %>
+\end{itemize}
+<% else %>
+\vspace{2pt}
+<% endif %>
+<% endfor %>
+<% endif %>
+
+% ==============================================================================
+% EXPERIÊNCIA PROFISSIONAL / ACADÊMICA
+% ==============================================================================
+<% if experiences %>
+\section{Experiência}
+<% for exp in experiences %>
+\noindent
+\textbf{\color{primary} << exp.title >>}, << exp.organization >> \hfill {\small\color{subtext} << exp.period >>}
+<% if exp.location %>
+\newline {\footnotesize\color{subtext} << exp.location >>}
+<% endif %>
+<% if exp.technologies %>
+\newline {\footnotesize\textbf{Tecnologias:} \textit{<< exp.technologies|join(', ') >>}}
+<% endif %>
+<% if exp.bullets %>
+\begin{itemize}
+    <% for bullet in exp.bullets %>
+    \item \small << bullet >>
+    <% endfor %>
+\end{itemize}
+<% else %>
+\vspace{2pt}
+<% endif %>
+<% endfor %>
+<% endif %>
+
+% ==============================================================================
+% PROJETOS EM DESTAQUE
+% ==============================================================================
+<% if projects %>
+\section{Projetos em Destaque}
+<% for proj in projects %>
+\noindent
+\textbf{\color{primary} << proj.name >>}
+<% if proj.url %>
+\quad {\footnotesize\href{<< proj.url >>}{[Ver Projeto]}}
+<% endif %>
+<% if proj.technologies %>
+\hfill {\footnotesize\color{subtext} \textbf{Stack:} << proj.technologies|join(', ') >>}
+<% endif %>
+<% if proj.bullets %>
+\begin{itemize}
+    <% for bullet in proj.bullets %>
+    \item \small << bullet >>
+    <% endfor %>
+\end{itemize}
+<% else %>
+\vspace{2pt}
+<% endif %>
+<% endfor %>
+<% endif %>
+
+% ==============================================================================
+% HABILIDADES TÉCNICAS
+% ==============================================================================
+<% if skills %>
+\section{Habilidades Técnicas}
+\small
+<% for skill_cat in skills %>
+\noindent\textbf{<< skill_cat.category_name >>:} << skill_cat.skills|join(', ') >>\\[1.5pt]
+<% endfor %>
+<% endif %>
+
+% ==============================================================================
+% IDIOMAS E CERTIFICAÇÕES
+% ==============================================================================
+<% if languages or certifications %>
+\section{Idiomas \& Certificações}
+\small
+<% if languages %>
+\noindent\textbf{Idiomas:}
+<% for lang in languages %>
+<< lang.language >> (<< lang.proficiency >>)<% if not loop.last %>, <% endif %>
+<% endfor %>\\[1.5pt]
+<% endif %>
+<% if certifications %>
+\noindent\textbf{Certificações:} << certifications|join('; ') >>
+<% endif %>
+<% endif %>
+
+\end{document}
