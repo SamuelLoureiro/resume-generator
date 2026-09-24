@@ -30,7 +30,7 @@
 
 % --- FORMATAÇÃO DE SEÇÕES ---
 \titleformat{\section}
-  {\bfseries\large\color{accent}\uppercase}
+  {\bfseries\large\color{accent}}
   {}{0em}
   {}[\color{accent}\titlerule\vspace{-4pt}]
 
@@ -136,10 +136,10 @@
 \noindent
 \textbf{\color{primary} << proj.name >>}
 <% if proj.url %>
-\quad {\footnotesize\href{<< proj.url >>}{[Ver Projeto]}}
+\hfill {\footnotesize\href{<< proj.url >>}{[Ver Projeto / Repositório]}}
 <% endif %>
 <% if proj.technologies %>
-\hfill {\footnotesize\color{subtext} \textbf{Stack:} << proj.technologies|join(', ') >>}
+\newline {\footnotesize\textbf{Stack:} \textit{<< proj.technologies|join(', ') >>}}
 <% endif %>
 <% if proj.bullets %>
 \begin{itemize}

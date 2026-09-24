@@ -31,6 +31,8 @@ def escape_latex(text: str) -> str:
         "}": r"\}",
         "~": r"\textasciitilde{}",
         "^": r"\textasciicircum{}",
+        "—": "---",
+        "–": "--",
     }
 
     # Use regex to substitute safely
