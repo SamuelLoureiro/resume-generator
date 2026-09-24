@@ -7,13 +7,13 @@
 # ==============================================================================
 
 contact:
-  full_name: "Samuel Silva"
-  email: "samuel.contato@email.com"
-  phone: "+55 (11) 98765-4321"
-  location: "São Paulo, SP - Brasil"
-  linkedin_url: "https://www.linkedin.com/in/samuel-perfil"
-  github_url: "https://github.com/samuel-dev"
-  portfolio_url: "https://samuel-portfolio.dev"
+  full_name: "Samuel Amadeu Loureiro"
+  email: "samu.loureiro23@gmail.com"
+  phone: "+33 743528487"
+  location: "Brest - France"
+  linkedin_url: "www.linkedin.com/in/samuelamadeuloureiro"
+  github_url: "https://github.com/SamuelLoureiro"
+  portfolio_url: ""
 
 # Resumo ou bio geral (opcional: o RAG adaptará o objetivo para cada vaga)
 summary: >-
@@ -24,10 +24,10 @@ summary: >-
 
 # Formação acadêmica (graduação atual, cursos técnicos ou anteriores)
 education:
-  - institution: "Universidade de São Paulo (USP)"
-    degree: "Bacharelado em Ciência da Computação"
-    start_date: "03/2023"
-    end_date: "12/2026"
+  - institution: "Universidade Federal de Itajubá (UNIFEI)"
+    degree: "Bacharelado em Engenharia de Computação"
+    start_date: "03/2022"
+    end_date: "12/2027"
     current: true
     gpa_or_honors: "Coeficiente de Rendimento: 8.5 / 10.0"
     relevant_coursework:
@@ -38,13 +38,39 @@ education:
     highlights:
       - "Bolsista de Iniciação Científica em Inteligência Artificial"
       - "Monitor da disciplina de Introdução à Ciência da Computação"
+  - institution: "École Nationale d'Ingénieurs de Brest (ENIB)"
+    degree: " Ingénieur système généraliste en électronique, informatique et mécatronique (Bac +5)."
+    start_date: "09/2025"
+    end_date: "07/2027"
+    current: true
+    gpa_or_honors: "Média Final: 17 / 20.0"
+    relevant_coursework:
+      - "Matemática Avançada"
+      - "Física e Química Aplicadas"
+      - "Programação Básica em Python"
+    highlights:
+      - "Participação em Olimpíadas de Matemática e Informática"
+      - "Representante estudantil em projetos de tecnologia e inovação"
+  - institution: "Master co-accrédité avec l’ENIB, l’UBO, l’ENSTA-Bretagne 1 et l’IMT Atlantique."
+    degree: "Masters Système Interactifs Intelligents et Autonomes"
+    start_date: "09/2026"
+    end_date: "07/2027"
+    current: true
+    gpa_or_honors: ""
+    relevant_coursework:
+      - "Programação em C/C++ e Python"
+      - "Redes de Computadores e Segurança da Informação"
+      - "Desenvolvimento Web e Mobile"
+    highlights:
+      - "Projeto de conclusão de curso premiado em feira tecnológica estadual"
+      - "Participação em competições de programação e robótica"
 
 # Experiências profissionais, acadêmicas ou estágios anteriores
 # Se ainda não tiver estágio formal, pode listar iniciação científica, empresa júnior, monitoria, etc.
 experiences:
   - title: "Pesquisador de Iniciação Científica (IA e NLP)"
-    organization: "Laboratório de Inteligência Computacional - USP"
-    location: "São Paulo, SP"
+    organization: "Laboratório de Inteligência Computacional - UNIFEI"
+    location: "Itajubá, MG"
     start_date: "08/2024"
     end_date: "Presente"
     current: true

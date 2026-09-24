@@ -65,3 +65,18 @@
 - **Modelo usado:** Gemini Flash (execução)
 - **Desafios:** Nenhum
 - **Próximos passos:** Tarefas 1.5 e 1.6 — Curadoria da base de conhecimento (boas práticas de currículo e recrutamento de estágio em `src/knowledge_base/`)
+
+## 2026-09-24 — Tarefa 1.5: Curadoria da Base de Conhecimento — Boas Práticas de Currículo
+- **O que foi feito:**
+  - Criação de 5 documentos markdown técnicos e modulares em `src/knowledge_base/resume_best_practices/`:
+    - `01_estrutura_curriculo_estagio.md`: Regra de 1 página, ordem hierárquica ideal para estudantes (educação no topo) e escaneabilidade visual.
+    - `02_metodo_star_xyz_bullets.md`: Fórmula XYZ do Google, método STAR e estratégias para quantificar resultados técnicos sem experiência corporativa prévia.
+    - `03_verbos_de_acao_e_vocabulario.md`: Catálogo de verbos de ação fortes categorizados por domínio (desenvolvimento, IA/dados, performance, liderança) e lista negra de palavras fracas/clichês.
+    - `04_otimizacao_ats.md`: Arquitetura dos robôs de triagem ATS, correspondência contextual de palavras-chave e checklist de compatibilidade.
+    - `05_erros_comuns_e_red_flags.md`: Red flags fatais na triagem dos 6 segundos (erros ortográficos, currículo genérico, alucinação de competências).
+  - Execução da suíte de testes: 8/8 testes passando.
+- **Decisões tomadas:**
+  - Estruturação dos textos com cabeçalhos semânticos claros para otimizar o particionamento em chunks pelo `SentenceSplitter` do LlamaIndex na Fase 2.
+- **Modelo usado:** Gemini Flash (execução)
+- **Desafios:** Nenhum
+- **Próximos passos:** Tarefa 1.6 — Curadoria da base de conhecimento de RH e recrutamento de estágio (`src/knowledge_base/hr_recruitment/`)
