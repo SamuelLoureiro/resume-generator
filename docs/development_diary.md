@@ -80,3 +80,19 @@
 - **Modelo usado:** Gemini Flash (execução)
 - **Desafios:** Nenhum
 - **Próximos passos:** Tarefa 1.6 — Curadoria da base de conhecimento de RH e recrutamento de estágio (`src/knowledge_base/hr_recruitment/`)
+
+## 2026-09-24 — Tarefa 1.6: Curadoria da Base de Conhecimento — Recrutamento e RH de Estágio
+- **O que foi feito:**
+  - Criação de 5 documentos markdown especializados em `src/knowledge_base/hr_recruitment/`:
+    - `01_o_que_recrutadores_procuram_em_estagio.md`: Foco em potencial de aprendizado (learning agility), fundamentos sólidos e senso de dono (ownership).
+    - `02_diferencas_big_techs_vs_startups.md`: Critérios de avaliação em Big Techs (escala, arquitetura, algoritmos) vs Startups (velocidade, end-to-end, MVPs e pragmatismo).
+    - `03_soft_skills_e_diferenciais_competitivos.md`: Princípio "Mostre, Não Apenas Diga" (Show, Don't Tell) para comunicação, trabalho em equipe e curiosidade intelectual.
+    - `04_valorizacao_experiencias_academicas_e_projetos.md`: Como converter Iniciação Científica, Empresa Júnior, Monitoria e Projetos Pessoais em experiência de alto valor no mercado corporativo.
+    - `05_adaptacao_por_trilha_tecnica.md`: Diretrizes de priorização semântica por trilhas (Inteligência Artificial / RAG, Engenharia de Dados, Backend).
+  - Implementação de teste unitário em `tests/test_knowledge_base.py` validando presença, extensão e formato de todos os documentos da base de conhecimento.
+  - Suíte de testes atualizada: 9/9 testes passando com 100% de sucesso.
+- **Decisões tomadas:**
+  - Encerramento completo de todos os entregáveis da **Fase 1 (Fundação e Dados)** do projeto.
+- **Modelo usado:** Gemini Flash (execução)
+- **Desafios:** Nenhum
+- **Próximos passos:** Iniciar a **Fase 2 — Pipeline RAG Core** (Loader com `SimpleDirectoryReader`, indexação com `SentenceSplitter`, embeddings com `models/text-embedding-004`, vector store ChromaDB e retriever híbrido).
