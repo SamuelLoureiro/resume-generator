@@ -127,4 +127,18 @@
   - Runtime data values in the candidate profile YAML and knowledge base markdown documents remain in Portuguese (user-facing content, not identifiers or labels).
 - **Model used:** Gemini Flash (execution)
 - **Challenges:** None.
-- **Next steps:** Refactoring Phase 2 — Refactor data ingestion, chunking, vector store, retrieval, and generation modules.
+- **Next steps:** Task 2.2 — Verification & Indexing with SentenceSplitter and Gemini/Mock embeddings.
+
+## 2026-09-25 — Task 2.2: Knowledge Base Indexer & Vector Store Verification
+- **What was done:**
+  - Audited and verified `src/ingestion/indexer.py` implementation against Phase 2 requirements.
+  - Added `get_embedding_model` factory supporting `GeminiEmbedding` (production via settings) and `MockEmbedding` (offline testing, dim=768).
+  - Allowed `KnowledgeBaseIndexer.__init__` to default to `get_embedding_model()`, simplifying production initialization.
+  - Enhanced `KnowledgeBaseLoader.load_category` to gracefully skip empty category directories with a warning instead of failing.
+  - Added end-to-end integration test (`test_indexer_integration_with_real_kb_docs`) that reads all 10 real knowledge base Markdown files, chunks them with `SentenceSplitter` (512 tokens / 50 overlap), persists vectors to ChromaDB, and verifies index reloading.
+  - Updated test suite: **29/29 tests passing** with 100% success.
+- **Decisions made:**
+  - Embedding factory defaults to offline mode during automated tests and picks up Google AI Pro credentials via `Settings` in live execution.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Task 2.3 — Hybrid Retriever implementation (`src/retrieval/retriever.py`).
