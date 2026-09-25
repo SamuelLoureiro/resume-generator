@@ -253,3 +253,77 @@ def test_hybrid_retriever_end_to_end_with_real_kb(tmp_path: Path) -> None:
     context = format_retrieved_context(results)
     assert len(context) > 100
     assert "### [Guideline" in context
+
+
+# ---------------------------------------------------------------------------
+# KnowledgeBasePipeline tests
+# ---------------------------------------------------------------------------
+
+def test_is_collection_populated_helper(tmp_path: Path) -> None:
+    """Test is_collection_populated returns False on missing/empty dir and True when filled."""
+    from src.retrieval.pipeline import is_collection_populated
+
+    missing = tmp_path / "does_not_exist"
+    assert is_collection_populated(missing, "col") is False
+
+    # Populated test
+    embed_model = MockEmbedding(embed_dim=768)
+    indexer = KnowledgeBaseIndexer(
+        embed_model=embed_model,
+        persist_dir=tmp_path / "chroma_check",
+        collection_name="check_col",
+    )
+    indexer.build_index([Document(text="sample document")])
+    assert is_collection_populated(tmp_path / "chroma_check", "check_col") is True
+
+
+def test_pipeline_lifecycle_and_reuse(tmp_path: Path) -> None:
+    """Test full pipeline setup, index persistence verification, and index reload without rebuilding."""
+    from src.retrieval.pipeline import KnowledgeBasePipeline
+
+    embed_model = MockEmbedding(embed_dim=768)
+    pipeline = KnowledgeBasePipeline(
+        persist_dir=tmp_path / "chroma_pipe",
+        collection_name="pipe_test",
+        embed_model=embed_model,
+        similarity_top_k=3,
+        bm25_top_k=3,
+    )
+
+    # Initially not indexed
+    assert pipeline.is_indexed() is False
+
+    # First setup: builds index
+    pipeline.setup()
+    assert pipeline.is_indexed() is True
+
+    # Second setup: reuses existing ChromaDB index without rebuilding
+    pipeline.setup(force_reindex=False)
+    assert pipeline.is_indexed() is True
+
+
+def test_pipeline_get_context_for_job(tmp_path: Path) -> None:
+    """Test pipeline generates formatted Markdown advice directly for a JobPosting."""
+    from src.retrieval.pipeline import KnowledgeBasePipeline
+
+    embed_model = MockEmbedding(embed_dim=768)
+    pipeline = KnowledgeBasePipeline(
+        persist_dir=tmp_path / "chroma_ctx",
+        collection_name="ctx_test",
+        embed_model=embed_model,
+        similarity_top_k=3,
+        bm25_top_k=3,
+    )
+
+    job = JobPosting(
+        title="AI Engineer Intern",
+        company="Startup X",
+        raw_description="Build RAG pipelines with Python, FastAPI, and vector databases.",
+        technologies=["Python", "FastAPI", "ChromaDB"],
+    )
+
+    context = pipeline.get_context_for_job(job=job, top_k=2)
+
+    assert isinstance(context, str)
+    assert len(context) > 0
+    assert "### [Guideline" in context

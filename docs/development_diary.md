@@ -160,3 +160,19 @@
 - **Model used:** Gemini Flash (execution)
 - **Challenges:** None.
 - **Next steps:** Task 2.4 / 2.5 — RAG pipeline integration wiring and Phase 2 closure.
+
+## 2026-09-25 — Task 2.4: KnowledgeBasePipeline Orchestration (Phase 2 Closure)
+- **What was done:**
+  - Implemented `KnowledgeBasePipeline` in `src/retrieval/pipeline.py`:
+    - Full lifecycle management: source document loading -> SentenceSplitter chunking -> ChromaDB vector index build/reload -> BM25 node indexing -> Hybrid retrieval with RRF.
+    - Added `is_collection_populated` helper to detect existing ChromaDB data and prevent redundant reindexing on application startups.
+    - Added `get_context_for_job` method that returns pre-formatted, structured Markdown guidelines for direct injection into Phase 3 prompts.
+  - Exported pipeline symbols in `src/retrieval/__init__.py`.
+  - Added 3 automated tests in `tests/test_retrieval.py` testing collection detection, index reload/reuse without rebuilding, and job context generation.
+  - Executed full test suite: **41/41 tests passing** with 100% success in 7.06s.
+  - Concluded **Phase 2 (RAG Core)** in its entirety.
+- **Decisions made:**
+  - `KnowledgeBasePipeline` serves as the single facade for the generation layer (`src/generation/chain.py`) and UI (`src/app.py`), abstracting away ChromaDB and BM25 details.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Phase 3 — Generation & Formatting (Prompt engineering, multi-step generation chain with Gemini, and LaTeX resume compilation).
