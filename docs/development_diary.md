@@ -142,3 +142,21 @@
 - **Model used:** Gemini Flash (execution)
 - **Challenges:** None.
 - **Next steps:** Task 2.3 — Hybrid Retriever implementation (`src/retrieval/retriever.py`).
+
+## 2026-09-25 — Task 2.3: Hybrid Retriever Implementation (ChromaDB + BM25 + RRF)
+- **What was done:**
+  - Installed and configured `llama-index-retrievers-bm25` (with `bm25s` and `pystemmer`) in `.venv` and updated `pyproject.toml`.
+  - Implemented `src/retrieval/retriever.py` with:
+    - `reciprocal_rank_fusion` (RRF, constant k=60) for unbiased multi-retriever score combination.
+    - `format_retrieved_context` for formatting retrieved knowledge chunks into clean Markdown for prompt injection.
+    - `HybridResumeRetriever` combining dense vector search (`VectorIndexRetriever` with ChromaDB) and sparse search (`BM25Retriever`), with metadata filtering by category (`resume_best_practices`, `hr_recruitment`).
+    - `retrieve_for_job` method directly accepting a `JobPosting` instance and generating optimized queries via `to_search_query()`.
+  - Exported symbols cleanly in `src/retrieval/__init__.py`.
+  - Created comprehensive test suite in `tests/test_retrieval.py` with 9 tests covering RRF fusion, empty input handling, context formatting, dense-only retrieval, BM25 exact matching, category filtering, JobPosting integration, and end-to-end retrieval with the real knowledge base.
+  - Added ADR-007 to `docs/decisions_log.md`.
+  - Test suite updated: **38/38 tests passing** with 100% success in 5.99s.
+- **Decisions made:**
+  - Reciprocal Rank Fusion adopted as the hybrid reranking strategy to eliminate score scale divergence between cosine similarity and BM25 scores.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Task 2.4 / 2.5 — RAG pipeline integration wiring and Phase 2 closure.

@@ -47,3 +47,11 @@
 - **Decision:** Migrate all identifiers, comments, docstrings, logs, documentation, and planning files to idiomatic English. Runtime data values (e.g. candidate profile content, knowledge base documents) remain in Portuguese where applicable.
 - **Rationale:** Consistent English codebase improves maintainability, static analysis, and portfolio presentation.
 - **Consequences:** One-time translation effort across all modules; no runtime logic changes.
+
+## ADR-007: Hybrid Search with Reciprocal Rank Fusion (RRF)
+- **Date:** 2026-09-25
+- **Status:** Accepted
+- **Context:** Internship job postings combine broad semantic domain intent (e.g. "AI engineering") with exact technical stack terms (e.g. "FastAPI", "PyTorch", "ChromaDB"). Pure vector search may miss exact keyword hits, while pure keyword search misses conceptual semantic relevance.
+- **Decision:** Implement `HybridResumeRetriever` combining dense vector search (ChromaDB cosine similarity) and sparse keyword search (BM25 via `llama-index-retrievers-bm25`), fused with Reciprocal Rank Fusion (RRF, constant k=60).
+- **Rationale:** RRF is parameter-free, avoids score scale mismatch between cosine similarity and BM25 scores, and ensures both semantic relevance and exact keyword presence are rewarded.
+- **Consequences:** Requires building an in-memory BM25 index over candidate nodes; minimal memory footprint for small-to-medium knowledge bases.
