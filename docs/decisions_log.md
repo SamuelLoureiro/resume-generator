@@ -63,3 +63,16 @@
 - **Decision:** Combine Google Gemini with a five-mandate system prompt enforcing factual grounding exclusively on `CandidateProfile`, and require structured JSON output parsed into `TailoredResume` (Pydantic v2). Provide resilient extraction (`extract_json_payload`) supporting raw JSON, markdown-wrapped JSON, and embedded objects.
 - **Rationale:** Strict schema validation catches hallucinated attributes immediately, while the prompt design channels the LLM's creativity toward stylistic tailoring (Google XYZ formula, active verbs) rather than factual invention.
 - **Consequences:** Generates valid, type-safe data structures ready for deterministic Jinja2/LaTeX rendering.
+
+## ADR-009: LlamaIndex Native Evaluators Instead of RAGAS 0.4.x
+- **Date:** 2026-09-25
+- **Status:** Accepted
+- **Context:** Phase 5 requires evaluation of three quality dimensions: faithfulness (anti-hallucination), answer relevancy, and context precision — the standard RAGAS metrics. RAGAS was declared as a project dependency since initial planning. When RAGAS 0.4.3 was installed, it failed to import because `ragas/llms/base.py` hardcodes `from langchain_community.chat_models.vertexai import ChatVertexAI`, a module that no longer exists in `langchain-community >= 0.3.x` (the VertexAI integration was moved to the separate `langchain-google-vertexai` package). Installing `langchain-google-vertexai` does not resolve the issue because the import uses the old `langchain_community` namespace, not the new package's namespace.
+- **Decision:** Use `llama_index.core.evaluation` evaluators (`FaithfulnessEvaluator`, `RelevancyEvaluator`, `ContextRelevancyEvaluator`) instead of RAGAS directly.
+- **Rationale:**
+  - LlamaIndex evaluators measure the exact same three dimensions as RAGAS with identical 0-1 scoring convention.
+  - They use our existing Gemini LLM configuration (`get_gemini_llm()`), requiring no additional LLM setup.
+  - They are natively integrated with LlamaIndex's node and response structures, requiring no data format conversion layer.
+  - All three evaluator APIs are identical: `evaluate(query, response, contexts)`, simplifying the runner implementation.
+  - Unit tests run fully offline using `MagicMock` (no `MockLLM` required), since evaluator methods are patched directly.
+- **Consequences:** RAGAS remains listed in `pyproject.toml` as an optional dependency for future compatibility (it can replace LlamaIndex evaluators if a compatible version is released). The evaluation report includes `| RAGAS Parallel |` columns mapping our metrics back to the RAGAS terminology for familiarity.

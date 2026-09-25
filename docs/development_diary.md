@@ -276,5 +276,24 @@
   - Kept history inspection fully client-side and filesystem-based without external database dependencies, keeping the application lightweight and portable.
 - **Model used:** Gemini Flash (execution)
 - **Challenges:** Fixed missing `time` import in test module and ensured generated file names are dynamically added to the dropdown choices.
-- **Next steps:** Phase 5 — Evaluation & Tuning (Setting up RAGAS evaluation pipeline for faithfulness, answer relevancy, and context precision, plus edge cases testing).
+- **Next steps:** Phase 5 — Evaluation & Tuning (Setting up evaluation pipeline for faithfulness, answer relevancy, and context precision, plus edge cases testing).
+
+## 2026-09-25 — Task 5.1: Evaluation Module Setup (LlamaIndex Evaluators)
+- **What was done:**
+  - Attempted to integrate RAGAS 0.4.3 as the evaluation backend. Discovered a hard import-time incompatibility: `ragas/llms/base.py` imports `from langchain_community.chat_models.vertexai import ChatVertexAI`, a module removed in `langchain-community >= 0.3.x`. Installing `langchain-google-vertexai` does not fix it because the import uses the old `langchain_community` namespace. Documented as ADR-009 in `docs/decisions_log.md`.
+  - Decided to use `llama_index.core.evaluation` native evaluators — same metric dimensions, same 0-1 scoring, no compatibility issues, and directly integrated with our existing Gemini LLM configuration.
+  - Created `src/evaluation/` sub-package with three modules:
+    - `src/evaluation/metrics.py`: `EvaluationScores` dataclass (faithfulness, answer_relevancy, context_precision, geometric-mean aggregate), `build_evaluators(llm)` factory, and `result_to_score()` normaliser.
+    - `src/evaluation/runner.py`: `EvaluationSample` dataclass with context-routing helpers (faithfulness uses candidate profile; relevancy/precision use retrieved chunks), `EvaluationRunResult`, `EvaluationRunner` with lazy evaluator building and graceful exception handling, and `format_evaluation_report()` Markdown formatter.
+    - `src/evaluation/__init__.py`: clean public API exports.
+  - Created `tests/test_evaluation.py` with 30 offline unit tests covering: score mathematics (geometric mean, NaN prevention), result normalisation (clamping, fallback), sample context routing (anti-hallucination isolation), runner success/failure/batch paths, evaluator lazy caching, and report formatting.
+  - Created `data/eval/` directory (placeholder for Task 5.2 dataset files).
+  - Test suite updated: **96/96 tests passing** with 100% success in 27.87s.
+- **Decisions made:**
+  - Context routing: faithfulness evaluation receives only `candidate_facts` as context (not retrieved chunks), enforcing anti-hallucination judgment w.r.t. the candidate profile specifically.
+  - Geometric mean as aggregate score: extreme weakness in any single dimension floors the aggregate (e.g., faithfulness=0.0 → aggregate=0.0).
+  - Lazy evaluator construction: avoids LLM initialisation during test collection when evaluators are patched via mocks.
+- **Model used:** Claude Sonnet (Thinking) (execution)
+- **Challenges:** RAGAS 0.4.3 incompatibility with langchain-community >= 0.3.x; resolved by switching to LlamaIndex evaluators (see ADR-009).
+- **Next steps:** Task 5.2 — Synthetic evaluation dataset with real internship job postings (`data/eval/`) and Task 5.3 — metrics report generation.
 
