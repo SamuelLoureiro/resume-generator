@@ -3,15 +3,22 @@
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import Any
 
 import gradio as gr
-import yaml
 
 from src.config import get_settings
 from src.data.candidate import CandidateProfile
 from src.data.job_posting import JobPosting
+from src.data.resume import TailoredResume
+from src.generation.chain import (
+    ResumeGenerationChain,
+    get_gemini_llm,
+)
+from src.generation.formatter import ResumeFormatter
+from src.retrieval.pipeline import KnowledgeBasePipeline
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -81,8 +88,149 @@ def handle_profile_upload(file: Any) -> tuple[str, str]:
         return f"❌ Invalid candidate YAML profile: {e}", "Error in uploaded file. Please check schema."
 
 
+def generate_resume_action(
+    uploaded_file: Any,
+    job_title: str,
+    company: str,
+    location: str,
+    work_model: str,
+    job_description: str,
+    technologies: str,
+    gemini_model: str = "gemini-2.5-flash",
+    temperature: float = 0.2,
+    top_k: int = 5,
+    force_reindex: bool = False,
+    pipeline: KnowledgeBasePipeline | None = None,
+    chain: ResumeGenerationChain | None = None,
+    formatter: ResumeFormatter | None = None,
+) -> tuple[str, str | None, str, str, str]:
+    """Execute the end-to-end resume generation workflow.
+
+    Args:
+        uploaded_file: Optional custom YAML profile file upload.
+        job_title: Target internship role title.
+        company: Target hiring company name.
+        location: Work location.
+        work_model: On-site, Hybrid, or Remote.
+        job_description: Full job description text.
+        technologies: Comma-separated list of technologies.
+        gemini_model: Gemini model identifier.
+        temperature: Sampling temperature for generation.
+        top_k: Number of RAG guidelines to retrieve.
+        force_reindex: Whether to rebuild the ChromaDB index.
+        pipeline: Optional injected KnowledgeBasePipeline (for testing).
+        chain: Optional injected ResumeGenerationChain (for testing).
+        formatter: Optional injected ResumeFormatter (for testing).
+
+    Returns:
+        tuple containing:
+          - pipeline_status (Markdown status string)
+          - pdf_path (Path to generated PDF for gr.File download, or None)
+          - pdf_info (Markdown metadata about the compiled PDF)
+          - rag_guidelines (Markdown text of retrieved guidelines)
+          - rendered_tex (Raw LaTeX source code)
+    """
+    start_time = time.time()
+
+    # 1. Validation
+    if not job_title or not job_title.strip():
+        return "⚠️ **Missing Field:** Please provide a Job Title.", None, "", "", ""
+    if not company or not company.strip():
+        return "⚠️ **Missing Field:** Please provide a Hiring Company.", None, "", "", ""
+    if not job_description or not job_description.strip():
+        return "⚠️ **Missing Field:** Please paste the Job Description / Requirements.", None, "", "", ""
+
+    settings = get_settings()
+
+    # 2. Resolve Candidate Profile
+    try:
+        if uploaded_file is not None:
+            if isinstance(uploaded_file, (str, Path)):
+                profile_path = Path(uploaded_file)
+            elif hasattr(uploaded_file, "name"):
+                profile_path = Path(uploaded_file.name)
+            elif isinstance(uploaded_file, dict) and "path" in uploaded_file:
+                profile_path = Path(uploaded_file["path"])
+            else:
+                profile_path = Path(str(uploaded_file))
+        else:
+            profile_path = Path(settings.candidate_profile_path)
+
+        candidate, _ = load_candidate_profile_from_path(profile_path)
+    except Exception as e:
+        logger.error("Failed to load candidate profile: %s", e)
+        return f"❌ **Profile Error:** {e}", None, "", "", ""
+
+    # 3. Build JobPosting instance
+    tech_list = [t.strip() for t in technologies.split(",") if t.strip()]
+    job = JobPosting(
+        title=job_title.strip(),
+        company=company.strip(),
+        location=location.strip() or "Not specified",
+        work_model=work_model,
+        raw_description=job_description.strip(),
+        technologies=tech_list,
+        keywords=tech_list[:5],
+    )
+
+    try:
+        # 4. RAG Retrieval: Extract guidelines
+        logger.info("Executing RAG retrieval for job: %s @ %s", job.title, job.company)
+        active_pipeline = pipeline if pipeline is not None else KnowledgeBasePipeline(
+            similarity_top_k=int(top_k),
+            bm25_top_k=int(top_k),
+        )
+        if force_reindex:
+            active_pipeline.setup(force_reindex=True)
+
+        guidelines = active_pipeline.get_context_for_job(job=job, top_k=int(top_k))
+
+        # 5. LLM Generation: Structured TailoredResume
+        logger.info("Invoking generation chain (model=%s, temp=%.2f)...", gemini_model, temperature)
+        if chain is None:
+            llm = get_gemini_llm(model_name=gemini_model, temperature=temperature)
+            active_chain = ResumeGenerationChain(llm=llm)
+        else:
+            active_chain = chain
+
+        tailored_resume = active_chain.generate(
+            candidate=candidate,
+            job=job,
+            retrieved_guidelines=guidelines,
+        )
+
+        # 6. Formatting & LaTeX PDF Compilation
+        logger.info("Rendering LaTeX and compiling with Tectonic...")
+        active_formatter = formatter if formatter is not None else ResumeFormatter()
+        rendered_tex = active_formatter.render_latex(tailored_resume)
+        pdf_path = active_formatter.compile_pdf(tailored_resume, keep_tex=True)
+
+        elapsed = time.time() - start_time
+        pdf_size_kb = pdf_path.stat().st_size / 1024
+
+        status_msg = f"🟢 **Success!** Tailored resume generated and compiled in **{elapsed:.1f}s**."
+        pdf_info_md = f"""### 📄 Resume Compiled Successfully!
+- **File:** `{pdf_path.name}`
+- **Size:** `{pdf_size_kb:.1f} KB`
+- **Candidate:** **{tailored_resume.header.full_name}**
+- **Target Role:** **{tailored_resume.target_job_title}** @ **{tailored_resume.target_company}**
+- **Format:** Strict 1-Page PDF (ATS & Recruiter Optimized)
+"""
+        return status_msg, str(pdf_path), pdf_info_md, guidelines, rendered_tex
+
+    except Exception as e:
+        logger.error("End-to-end generation failed: %s", e, exc_info=True)
+        return (
+            f"❌ **Generation Failed:** {e}",
+            None,
+            f"⚠️ **Error details:**\n```\n{e}\n```",
+            "",
+            "",
+        )
+
+
 def build_app() -> gr.Blocks:
-    """Build the complete Gradio application layout and input/output panels.
+    """Build the complete Gradio application layout and connect workflow actions.
 
     Returns:
         gr.Blocks: Configured Gradio interface.
@@ -95,11 +243,6 @@ def build_app() -> gr.Blocks:
         _, initial_summary_md = load_candidate_profile_from_path(default_profile_path)
     except Exception as e:
         initial_summary_md = f"⚠️ Could not preload `{default_profile_path}`: {e}"
-
-    custom_theme = gr.themes.Soft(
-        primary_hue="blue",
-        secondary_hue="slate",
-    )
 
     with gr.Blocks(title="RAG Resume Tailor") as app:
         # Header banner
@@ -235,6 +378,31 @@ AI-powered, ATS-optimized, 1-page resume generator combining your verified backg
                             label="Rendered LaTeX Source Code",
                             interactive=False,
                         )
+
+        # Connect the main generation workflow
+        generate_btn.click(
+            fn=generate_resume_action,
+            inputs=[
+                profile_upload,
+                job_title_input,
+                company_input,
+                location_input,
+                work_model_input,
+                job_desc_input,
+                tech_input,
+                model_dropdown,
+                temp_slider,
+                top_k_slider,
+                force_reindex,
+            ],
+            outputs=[
+                pipeline_status,
+                pdf_download,
+                pdf_info_display,
+                rag_guidelines_display,
+                tex_code_display,
+            ],
+        )
 
     return app
 

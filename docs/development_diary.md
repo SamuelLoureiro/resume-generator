@@ -220,3 +220,22 @@
 - **Challenges:** Resolved Gradio 6.0 parameter placement deprecation warning and fixed Path object resolution in file uploads.
 - **Next steps:** Task 4.2 — End-to-End Pipeline Wiring to the "Generate Tailored Resume" button with real-time PDF rendering.
 
+## 2026-09-25 — Task 4.2: End-to-End Gradio Workflow Wiring & PDF Generation
+- **What was done:**
+  - Implemented `generate_resume_action` in `src/app.py`:
+    - Validates mandatory fields (Job Title, Company, Job Description).
+    - Resolves CandidateProfile (default or custom uploaded YAML).
+    - Instantiates JobPosting with structured technologies and keywords.
+    - Executes RAG retrieval via `KnowledgeBasePipeline.get_context_for_job` (with dynamic Top-K and force re-index support).
+    - Triggers `ResumeGenerationChain` to produce a structured `TailoredResume`.
+    - Compiles the final PDF via `ResumeFormatter` using Tectonic.
+    - Returns updated status, downloadable PDF path, metadata summary, RAG guidelines text, and rendered LaTeX source.
+  - Connected the action to `generate_btn.click` with full input and output component mappings.
+  - Added 3 automated tests in `tests/test_app.py` covering input validation, mock end-to-end execution, and graceful chain error handling.
+  - Test suite updated: **62/62 tests passing** with 100% success in 12.10s.
+- **Decisions made:**
+  - `generate_resume_action` accepts optional injected pipeline/chain/formatter dependencies, enabling deterministic, fast, offline unit testing.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Task 4.3 — Export, RAG Transparency tabs, and generation history.
+

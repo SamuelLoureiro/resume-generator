@@ -79,3 +79,137 @@ def test_build_app_structure() -> None:
     """Test that build_app successfully constructs the Gradio Blocks application."""
     app = build_app()
     assert isinstance(app, gr.Blocks)
+
+
+# ---------------------------------------------------------------------------
+# generate_resume_action tests
+# ---------------------------------------------------------------------------
+
+def test_generate_resume_action_missing_inputs() -> None:
+    """Test that missing mandatory fields return clear user warnings."""
+    from src.app import generate_resume_action
+
+    # Missing job title
+    status, pdf, info, guide, tex = generate_resume_action(
+        uploaded_file=None,
+        job_title="",
+        company="Google",
+        location="",
+        work_model="Hybrid",
+        job_description="Description here",
+        technologies="",
+    )
+    assert "Missing Field" in status
+    assert "Job Title" in status
+    assert pdf is None
+
+    # Missing company
+    status, pdf, info, guide, tex = generate_resume_action(
+        uploaded_file=None,
+        job_title="ML Intern",
+        company="",
+        location="",
+        work_model="Hybrid",
+        job_description="Description here",
+        technologies="",
+    )
+    assert "Missing Field" in status
+    assert "Hiring Company" in status
+    assert pdf is None
+
+    # Missing description
+    status, pdf, info, guide, tex = generate_resume_action(
+        uploaded_file=None,
+        job_title="ML Intern",
+        company="Google",
+        location="",
+        work_model="Hybrid",
+        job_description="",
+        technologies="",
+    )
+    assert "Missing Field" in status
+    assert "Job Description" in status
+    assert pdf is None
+
+
+def test_generate_resume_action_with_mocks(tmp_path: Path) -> None:
+    """Test full generate_resume_action workflow using injected mocks."""
+    from unittest.mock import MagicMock
+    from src.app import generate_resume_action
+    from src.data.resume import ResumeHeader, TailoredResume
+
+    # Mock pipeline
+    mock_pipeline = MagicMock()
+    mock_pipeline.get_context_for_job.return_value = "### [Guideline 1: XYZ Formula]\nQuantify results."
+
+    # Mock tailored resume
+    mock_resume = TailoredResume(
+        target_job_title="ML Intern",
+        target_company="DeepMind",
+        header=ResumeHeader(
+            full_name="Samuel Silva",
+            email="samuel@example.com",
+            phone="+55 11 99999-9999",
+            location="São Paulo, SP",
+        ),
+        objective_or_summary="Student focused on ML and RAG systems.",
+    )
+
+    # Mock chain
+    mock_chain = MagicMock()
+    mock_chain.generate.return_value = mock_resume
+
+    # Mock formatter & fake compiled PDF
+    fake_pdf = tmp_path / "test_resume.pdf"
+    fake_pdf.write_bytes(b"%PDF-1.5 fake pdf content for test")
+
+    mock_formatter = MagicMock()
+    mock_formatter.render_latex.return_value = "\\documentclass{article}\\begin{document}Hello\\end{document}"
+    mock_formatter.compile_pdf.return_value = fake_pdf
+
+    status, pdf_path, info_md, guidelines, rendered_tex = generate_resume_action(
+        uploaded_file=None,
+        job_title="ML Intern",
+        company="DeepMind",
+        location="Remote",
+        work_model="Remote",
+        job_description="Build RAG with LlamaIndex and vector stores.",
+        technologies="Python, LlamaIndex, ChromaDB",
+        pipeline=mock_pipeline,
+        chain=mock_chain,
+        formatter=mock_formatter,
+    )
+
+    assert "Success!" in status
+    assert pdf_path == str(fake_pdf)
+    assert "DeepMind" in info_md
+    assert "XYZ Formula" in guidelines
+    assert "\\documentclass{article}" in rendered_tex
+
+
+def test_generate_resume_action_chain_failure_handled(tmp_path: Path) -> None:
+    """Test that an error inside the generation chain is handled gracefully without crashing."""
+    from unittest.mock import MagicMock
+    from src.app import generate_resume_action
+
+    mock_pipeline = MagicMock()
+    mock_pipeline.get_context_for_job.return_value = "Guidelines text"
+
+    mock_chain = MagicMock()
+    mock_chain.generate.side_effect = RuntimeError("API quota exceeded or network timeout")
+
+    status, pdf_path, info_md, guidelines, rendered_tex = generate_resume_action(
+        uploaded_file=None,
+        job_title="Data Intern",
+        company="Tech Co",
+        location="",
+        work_model="Hybrid",
+        job_description="Sample description",
+        technologies="",
+        pipeline=mock_pipeline,
+        chain=mock_chain,
+    )
+
+    assert "Generation Failed" in status
+    assert "API quota exceeded" in status
+    assert pdf_path is None
