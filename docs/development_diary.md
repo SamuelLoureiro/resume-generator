@@ -96,3 +96,18 @@
 - **Modelo usado:** Gemini Flash (execução)
 - **Desafios:** Nenhum
 - **Próximos passos:** Iniciar a **Fase 2 — Pipeline RAG Core** (Loader com `SimpleDirectoryReader`, indexação com `SentenceSplitter`, embeddings com `models/text-embedding-004`, vector store ChromaDB e retriever híbrido).
+
+## 2026-09-25 — Tarefa 2.1: Implementação do Document Loader (LlamaIndex)
+- **O que foi feito:**
+  - Instalação e configuração de dependências do LlamaIndex (`llama-index-core`, `llama-index-readers-file`, `llama-index-llms-gemini`, `llama-index-embeddings-gemini`, `llama-index-vector-stores-chroma`, `chromadb`) no ambiente virtual `.venv`.
+  - Implementação de `src/ingestion/loader.py` com a classe `KnowledgeBaseLoader` e função auxiliar `extract_title_from_markdown`:
+    - Integração de `SimpleDirectoryReader` para varredura recursiva de arquivos Markdown.
+    - Enriquecimento automático de metadados em cada documento (`category`, `topic`, `file_name`).
+    - Métodos para carga seletiva por categoria (`load_category`) e carga agregada (`load_all_documents`).
+  - Criação de testes unitários em `tests/test_ingestion.py` cobrindo extração de títulos, carga de categorias, agregação de documentos, diretórios customizados e tratamento de exceções.
+  - Suíte de testes atualizada: 15/15 testes passando com 100% de sucesso.
+- **Decisões tomadas:**
+  - Enriquecimento dos metadados dos nós na carga para permitir filtragem contextual precisa no ChromaDB durante o retrieval.
+- **Modelo usado:** Gemini Flash (execução)
+- **Desafios:** Resolução de dependências gRPC resolvida com sucesso pelo pip.
+- **Próximos passos:** Tarefa 2.2 — Indexação com `SentenceSplitter` e geração de embeddings (`src/ingestion/indexer.py`).
