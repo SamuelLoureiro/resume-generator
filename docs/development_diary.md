@@ -176,3 +176,31 @@
 - **Model used:** Gemini Flash (execution)
 - **Challenges:** None.
 - **Next steps:** Phase 3 — Generation & Formatting (Prompt engineering, multi-step generation chain with Gemini, and LaTeX resume compilation).
+
+## 2026-09-25 — Phase 3: Generation & Formatting Implementation
+- **What was done:**
+  - Implemented `src/generation/prompts.py`:
+    - `SYSTEM_PROMPT` containing the 5 Inviolable Mandates (Zero Hallucination, Google XYZ formula, high-impact action verbs, contextual ATS keyword density, and strict JSON output compliance).
+    - `build_resume_generation_prompt` integrating CandidateProfile, JobPosting context, and RAG guidelines.
+    - `get_resume_schema_description` generating JSON Schema for the `TailoredResume` Pydantic model.
+  - Implemented `src/generation/chain.py`:
+    - `ResumeGenerationChain` orchestrating LLM chat invocations via LlamaIndex.
+    - `extract_json_payload` robustly parsing raw JSON, markdown-fenced codeblocks, and embedded bracketed objects.
+    - `parse_tailored_resume` validating LLM output strictly against Pydantic schema.
+    - `get_gemini_llm` factory providing configured `Gemini` instances from settings.
+  - Implemented `src/generation/formatter.py`:
+    - `ResumeFormatter` rendering `templates/resume.tex.j2` with LaTeX-escaped context.
+    - `compile_pdf` invoking Tectonic standalone binary to compile 1-page PDF resumes into `output/` with clean sanitized filenames.
+    - `build_jinja_environment` configuring non-conflicting LaTeX delimiters (`<% %>` and `<< >>`).
+  - Exported symbols in `src/generation/__init__.py`.
+  - Created test suite in `tests/test_generation.py` with 12 tests covering prompt structure, schema parsing, JSON extraction, mock LLM generation chain, filename sanitization, LaTeX template rendering, and real PDF compilation via Tectonic.
+  - Added ADR-008 to `docs/decisions_log.md`.
+  - Executed full test suite: **53/53 tests passing** with 100% success in 8.29s.
+  - Concluded **Phase 3 (Generation & Formatting)** in its entirety.
+- **Decisions made:**
+  - Anti-hallucination guardrails enforced at both prompt level and Pydantic validation level.
+  - Tectonic confirmed as the default LaTeX compiler due to standalone zero-dependency execution.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Phase 4 — User Interface (Interactive Gradio App in `src/app.py` connecting Candidate Profile upload, Job Posting input, and real-time PDF generation/preview).
+

@@ -55,3 +55,11 @@
 - **Decision:** Implement `HybridResumeRetriever` combining dense vector search (ChromaDB cosine similarity) and sparse keyword search (BM25 via `llama-index-retrievers-bm25`), fused with Reciprocal Rank Fusion (RRF, constant k=60).
 - **Rationale:** RRF is parameter-free, avoids score scale mismatch between cosine similarity and BM25 scores, and ensures both semantic relevance and exact keyword presence are rewarded.
 - **Consequences:** Requires building an in-memory BM25 index over candidate nodes; minimal memory footprint for small-to-medium knowledge bases.
+
+## ADR-008: Structured Generation with Pydantic v2 & Anti-Hallucination Guardrails
+- **Date:** 2026-09-25
+- **Status:** Accepted
+- **Context:** LLMs naturally tend to hallucinate credentials or rephrase experiences in ways that alter factual truth when tailoring resumes. Furthermore, unstructured markdown responses require fragile post-processing.
+- **Decision:** Combine Google Gemini with a five-mandate system prompt enforcing factual grounding exclusively on `CandidateProfile`, and require structured JSON output parsed into `TailoredResume` (Pydantic v2). Provide resilient extraction (`extract_json_payload`) supporting raw JSON, markdown-wrapped JSON, and embedded objects.
+- **Rationale:** Strict schema validation catches hallucinated attributes immediately, while the prompt design channels the LLM's creativity toward stylistic tailoring (Google XYZ formula, active verbs) rather than factual invention.
+- **Consequences:** Generates valid, type-safe data structures ready for deterministic Jinja2/LaTeX rendering.
