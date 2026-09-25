@@ -67,6 +67,14 @@ class KnowledgeBaseLoader:
                 f"Knowledge base category directory not found: {category_path}"
             )
 
+        md_files = list(category_path.rglob("*.md")) + list(category_path.rglob("*.markdown"))
+        if not md_files:
+            logger.warning(
+                "Category directory '%s' contains no markdown files. Skipping.",
+                category_subdir,
+            )
+            return []
+
         reader = SimpleDirectoryReader(
             input_dir=str(category_path),
             required_exts=[".md", ".markdown"],

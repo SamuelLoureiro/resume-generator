@@ -34,6 +34,39 @@ def build_sentence_splitter() -> SentenceSplitter:
     )
 
 
+def get_embedding_model(
+    model_name: str | None = None,
+    api_key: str | None = None,
+    mock: bool = False,
+    mock_dim: int = 768,
+) -> BaseEmbedding:
+    """Create an embedding model instance for indexing and retrieval.
+
+    Args:
+        model_name: Gemini embedding model identifier. Defaults to settings.
+        api_key: Optional Gemini API key. Defaults to settings.
+        mock: If True, returns MockEmbedding (offline, zero API calls).
+        mock_dim: Vector dimension for MockEmbedding (768 for text-embedding-004).
+
+    Returns:
+        BaseEmbedding: Configured embedding model adapter.
+    """
+    if mock:
+        from llama_index.core.embeddings.mock_embed_model import MockEmbedding
+        return MockEmbedding(embed_dim=mock_dim)
+
+    from llama_index.embeddings.gemini import GeminiEmbedding
+
+    settings = get_settings()
+    resolved_model = model_name or settings.gemini_embedding_model
+    resolved_key = api_key or settings.google_api_key
+
+    return GeminiEmbedding(
+        model_name=resolved_model,
+        api_key=resolved_key if resolved_key else None,
+    )
+
+
 def build_chroma_vector_store(
     persist_dir: Path | str | None = None,
     collection_name: str = CHROMA_COLLECTION_NAME,
@@ -80,18 +113,18 @@ class KnowledgeBaseIndexer:
 
     def __init__(
         self,
-        embed_model: BaseEmbedding,
+        embed_model: BaseEmbedding | None = None,
         persist_dir: Path | str | None = None,
         collection_name: str = CHROMA_COLLECTION_NAME,
     ) -> None:
         """Initialize KnowledgeBaseIndexer.
 
         Args:
-            embed_model: Embedding model instance (GeminiEmbedding or MockEmbedding).
+            embed_model: Embedding model instance. If None, built via get_embedding_model().
             persist_dir: Directory for ChromaDB persistence. Defaults to settings value.
             collection_name: Name of the ChromaDB collection.
         """
-        self.embed_model = embed_model
+        self.embed_model = embed_model if embed_model is not None else get_embedding_model()
         self.persist_dir = Path(persist_dir) if persist_dir else Path(get_settings().chroma_persist_dir)
         self.collection_name = collection_name
 

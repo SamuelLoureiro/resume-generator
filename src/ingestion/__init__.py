@@ -7,6 +7,7 @@ from src.ingestion.indexer import (
     KnowledgeBaseIndexer,
     build_chroma_vector_store,
     build_sentence_splitter,
+    get_embedding_model,
 )
 from src.ingestion.loader import KnowledgeBaseLoader, extract_title_from_markdown
 
@@ -16,6 +17,7 @@ __all__ = [
     "KnowledgeBaseIndexer",
     "build_sentence_splitter",
     "build_chroma_vector_store",
+    "get_embedding_model",
     "CHUNK_SIZE",
     "CHUNK_OVERLAP",
     "CHROMA_COLLECTION_NAME",

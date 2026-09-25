@@ -212,3 +212,35 @@ def test_indexer_constants() -> None:
     assert CHUNK_OVERLAP < CHUNK_SIZE
     assert isinstance(CHROMA_COLLECTION_NAME, str)
     assert len(CHROMA_COLLECTION_NAME) > 0
+
+
+def test_get_embedding_model_mock() -> None:
+    """Test creating a mock embedding model via get_embedding_model factory."""
+    from src.ingestion.indexer import get_embedding_model
+
+    embed_model = get_embedding_model(mock=True, mock_dim=768)
+    assert isinstance(embed_model, MockEmbedding)
+
+
+def test_indexer_integration_with_real_kb_docs(tmp_path: Path) -> None:
+    """End-to-end integration test: load real KB docs and build index into ChromaDB."""
+    from llama_index.core import VectorStoreIndex
+    from src.ingestion.loader import KnowledgeBaseLoader
+
+    loader = KnowledgeBaseLoader()
+    docs = loader.load_all_documents()
+    assert len(docs) >= 10, "Expected at least 10 real documents from knowledge base"
+
+    embed_model = make_mock_embed_model()
+    indexer = KnowledgeBaseIndexer(
+        embed_model=embed_model,
+        persist_dir=tmp_path / "chroma_real_kb",
+        collection_name="real_kb_test",
+    )
+
+    index = indexer.build_index(docs)
+    assert isinstance(index, VectorStoreIndex)
+
+    # Verify reloading from disk
+    reloaded_index = indexer.load_index()
+    assert isinstance(reloaded_index, VectorStoreIndex)
