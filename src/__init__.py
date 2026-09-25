@@ -1,1 +1,1 @@
-"""Gerador de Currículos RAG package."""
+"""RAG-based resume generator package."""

@@ -154,7 +154,7 @@ class ResumeSkillCategory(BaseModel):
     """Grouped skill category for clean resume display.
 
     Attributes:
-        category_name: Section label (e.g. 'Linguagens de Programação').
+        category_name: Section label (e.g. 'Programming Languages').
         skills: List of skill names.
     """
 

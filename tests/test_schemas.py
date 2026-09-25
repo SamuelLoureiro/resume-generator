@@ -43,40 +43,40 @@ def test_candidate_profile_validation() -> None:
     """Test validating and building CandidateProfile."""
     profile = CandidateProfile(
         contact=ContactInfo(
-            full_name="João Silva",
-            email="joao@example.com",
+            full_name="John Smith",
+            email="john@example.com",
             phone="+55 11 99999-9999",
             location="São Paulo, SP",
-            linkedin_url="https://linkedin.com/in/joaosilva",
-            github_url="https://github.com/joaosilva",
+            linkedin_url="https://linkedin.com/in/johnsmith",
+            github_url="https://github.com/johnsmith",
         ),
-        summary="Estudante de Ciência da Computação focado em IA.",
+        summary="Computer Science student focused on AI.",
         education=[
             Education(
-                institution="Universidade de São Paulo",
-                degree="Bacharelado em Ciência da Computação",
+                institution="University of São Paulo",
+                degree="Bachelor of Science in Computer Science",
                 start_date="02/2023",
                 end_date="12/2026",
                 current=True,
-                relevant_coursework=["Estruturas de Dados", "Inteligência Artificial"],
+                relevant_coursework=["Data Structures", "Artificial Intelligence"],
             )
         ],
         experiences=[
             Experience(
-                title="Estagiário de Dados",
+                title="Data Engineering Intern",
                 organization="Tech Corp",
                 start_date="01/2024",
-                end_date="Presente",
+                end_date="Present",
                 current=True,
-                bullets=["Desenvolveu pipelines de ETL com Python e SQL."],
+                bullets=["Built ETL pipelines with Python and SQL."],
                 technologies=["Python", "SQL", "Docker"],
             )
         ],
         projects=[
             Project(
                 name="RAG Assistant",
-                description="Assistente inteligente com LlamaIndex e Gemini",
-                bullets=["Atingiu precisão semântica de 92%."],
+                description="Intelligent assistant with LlamaIndex and Gemini",
+                bullets=["Achieved 92% semantic precision."],
                 technologies=["Python", "LlamaIndex", "ChromaDB"],
                 highlight=True,
             )
@@ -86,15 +86,15 @@ def test_candidate_profile_validation() -> None:
             frameworks_and_libraries=["FastAPI", "PyTorch"],
             databases=["PostgreSQL", "ChromaDB"],
             tools_and_platforms=["Git", "Docker", "Linux"],
-            soft_skills=["Comunicação", "Resolução de Problemas"],
+            soft_skills=["Communication", "Problem Solving"],
         ),
         languages=[
-            Language(language="Português", proficiency="Nativo"),
-            Language(language="Inglês", proficiency="Avançado (C1)"),
+            Language(language="Portuguese", proficiency="Native"),
+            Language(language="English", proficiency="Advanced (C1)"),
         ],
     )
 
-    assert profile.contact.full_name == "João Silva"
+    assert profile.contact.full_name == "John Smith"
     assert len(profile.education) == 1
     assert len(profile.experiences) == 1
     assert profile.skills.programming_languages[0] == "Python"
@@ -112,7 +112,7 @@ def test_candidate_profile_yaml_roundtrip(tmp_path: Path) -> None:
         education=[
             Education(
                 institution="UFRJ",
-                degree="Engenharia de Computação",
+                degree="Computer Engineering",
                 start_date="2022",
                 end_date="2026",
             )
@@ -167,28 +167,28 @@ def test_job_posting_helpers() -> None:
 def test_tailored_resume_latex_escaping() -> None:
     """Test that TailoredResume escapes all special LaTeX characters for rendering."""
     resume = TailoredResume(
-        target_job_title="Estagiário de IA & Dados",
-        target_company="Empresa 100% Tech",
+        target_job_title="AI & Data Engineering Intern",
+        target_company="Company 100% Tech",
         header=ResumeHeader(
-            full_name="Carlos & Filhos",
+            full_name="Carlos & Sons",
             email="carlos_dev@example.com",
             phone="11 99999-0000",
             location="São Paulo, SP",
         ),
-        objective_or_summary="Focado em R&D para projetos com 99% de acurácia.",
+        objective_or_summary="Focused on R&D for projects with 99% accuracy.",
         education=[
             ResumeEducation(
                 institution="USP & Poli",
-                degree="Engenharia de Software (Bacharelado)",
+                degree="Software Engineering (Bachelor's)",
                 period="03/2023 - 12/2026",
             )
         ],
         experiences=[
             ResumeExperience(
-                title="Estagiário de R&D",
+                title="R&D Research Intern",
                 organization="Lab_AI",
-                period="2024 - Presente",
-                bullets=["Melhorou performance em 40% usando PyTorch & CUDA."],
+                period="2024 - Present",
+                bullets=["Improved performance by 40% using PyTorch & CUDA."],
                 technologies=["Python", "C#", "SQL"],
             )
         ],
@@ -196,12 +196,12 @@ def test_tailored_resume_latex_escaping() -> None:
             ResumeProject(
                 name="Project_X",
                 technologies=["FastAPI & Docker"],
-                bullets=["Desenvolveu API com $0 de custo de infra."],
+                bullets=["Built API with $0 infrastructure cost."],
             )
         ],
         skills=[
             ResumeSkillCategory(
-                category_name="Linguagens & Frameworks",
+                category_name="Languages & Frameworks",
                 skills=["Python", "C++", "C#"],
             )
         ],

@@ -21,11 +21,22 @@ Migrate all project documentation, planning files, code, tests, and configuratio
   - Test assertions updated to match new English string outputs
   - All 15 tests passing
 
-## Phase 2: Core Pipeline Refactoring
-- [ ] Refactor data ingestion, chunking, and vector store modules.
+## Phase 2: Core Pipeline Refactoring ✅
+- [x] Refactor data ingestion, chunking, and vector store modules.
+  - Translated `src/__init__.py` package docstring
+  - Translated all remaining Portuguese docstring examples in `src/data/candidate.py` and `src/data/resume.py`
+  - Translated all fixture data in `tests/test_schemas.py` and `tests/test_template.py`
+  - Implemented `src/ingestion/indexer.py` (Tarefa 2.2) — KnowledgeBaseIndexer with SentenceSplitter (512/50), MockEmbedding support, ChromaDB persistence
+  - Updated `src/ingestion/__init__.py` with full exports
+  - Created `tests/test_indexer.py` with 10 offline tests (MockEmbedding, no API calls)
+  - All 25 tests passing
 - [ ] Refactor retrieval and generation modules.
-- [ ] Update utility scripts, configurations, and environment variable names if needed.
+  - Deferred: `src/retrieval/` and `src/generation/` are not yet implemented; will be written in English from the start.
+- [x] Update utility scripts, configurations, and environment variable names if needed.
+  - All config, env var names, and settings already in English (no changes required)
 
-## Phase 3: Verification
-- [ ] Validate cross-module imports.
-- [ ] Run test scripts / ingestion pipeline to verify end-to-end functionality.
+## Phase 3: Verification ✅
+- [x] Validate cross-module imports.
+  - All imports validated via test suite (25/25 passing)
+- [x] Run test scripts / ingestion pipeline to verify end-to-end functionality.
+  - Full pytest suite: 25/25 passing in 5.72s

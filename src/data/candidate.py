@@ -15,7 +15,7 @@ class ContactInfo(BaseModel):
         full_name: Candidate's full name.
         email: Contact email address.
         phone: Contact phone number with country/area code.
-        location: City and state/country (e.g. 'São Paulo, SP - Brasil').
+        location: City and state/country (e.g. 'São Paulo, SP - Brazil').
         linkedin_url: Optional URL to candidate's LinkedIn profile.
         github_url: Optional URL to candidate's GitHub profile.
         portfolio_url: Optional URL to candidate's portfolio or personal website.
@@ -46,7 +46,7 @@ class Education(BaseModel):
 
     Attributes:
         institution: University or school name.
-        degree: Degree and field of study (e.g., 'Bacharelado em Ciência da Computação').
+        degree: Degree and field of study (e.g., 'Bachelor of Science in Computer Science').
         start_date: Start date formatted as 'MM/YYYY' or 'YYYY'.
         end_date: Completion date or expected graduation date.
         current: True if currently enrolled.
@@ -143,8 +143,8 @@ class Language(BaseModel):
     """Spoken or written language proficiency.
 
     Attributes:
-        language: Language name (e.g. 'Inglês', 'Espanhol').
-        proficiency: CEFR level or descriptive fluency (e.g. 'Avançado (C1)').
+        language: Language name (e.g. 'English', 'Spanish').
+        proficiency: CEFR level or descriptive fluency (e.g. 'Advanced (C1)').
     """
 
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
