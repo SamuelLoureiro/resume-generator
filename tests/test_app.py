@@ -90,7 +90,7 @@ def test_generate_resume_action_missing_inputs() -> None:
     from src.app import generate_resume_action
 
     # Missing job title
-    status, pdf, info, guide, tex = generate_resume_action(
+    status, pdf, tex, info, guide, raw_tex = generate_resume_action(
         uploaded_file=None,
         job_title="",
         company="Google",
@@ -102,9 +102,10 @@ def test_generate_resume_action_missing_inputs() -> None:
     assert "Missing Field" in status
     assert "Job Title" in status
     assert pdf is None
+    assert tex is None
 
     # Missing company
-    status, pdf, info, guide, tex = generate_resume_action(
+    status, pdf, tex, info, guide, raw_tex = generate_resume_action(
         uploaded_file=None,
         job_title="ML Intern",
         company="",
@@ -118,7 +119,7 @@ def test_generate_resume_action_missing_inputs() -> None:
     assert pdf is None
 
     # Missing description
-    status, pdf, info, guide, tex = generate_resume_action(
+    status, pdf, tex, info, guide, raw_tex = generate_resume_action(
         uploaded_file=None,
         job_title="ML Intern",
         company="Google",
@@ -135,12 +136,18 @@ def test_generate_resume_action_missing_inputs() -> None:
 def test_generate_resume_action_with_mocks(tmp_path: Path) -> None:
     """Test full generate_resume_action workflow using injected mocks."""
     from unittest.mock import MagicMock
+    from llama_index.core.schema import NodeWithScore, TextNode
     from src.app import generate_resume_action
     from src.data.resume import ResumeHeader, TailoredResume
 
-    # Mock pipeline
+    # Mock pipeline returning structured NodeWithScore
+    mock_node = TextNode(
+        text="Quantify your engineering achievements using the XYZ formula.",
+        metadata={"category": "resume_best_practices", "topic": "XYZ Formula", "file_name": "02_xyz.md"},
+        id_="node_1",
+    )
     mock_pipeline = MagicMock()
-    mock_pipeline.get_context_for_job.return_value = "### [Guideline 1: XYZ Formula]\nQuantify results."
+    mock_pipeline.retrieve_for_job.return_value = [NodeWithScore(node=mock_node, score=0.0325)]
 
     # Mock tailored resume
     mock_resume = TailoredResume(
@@ -159,15 +166,17 @@ def test_generate_resume_action_with_mocks(tmp_path: Path) -> None:
     mock_chain = MagicMock()
     mock_chain.generate.return_value = mock_resume
 
-    # Mock formatter & fake compiled PDF
+    # Mock formatter & fake compiled PDF + TeX
     fake_pdf = tmp_path / "test_resume.pdf"
     fake_pdf.write_bytes(b"%PDF-1.5 fake pdf content for test")
+    fake_tex = tmp_path / "test_resume.tex"
+    fake_tex.write_text("\\documentclass{article}", encoding="utf-8")
 
     mock_formatter = MagicMock()
     mock_formatter.render_latex.return_value = "\\documentclass{article}\\begin{document}Hello\\end{document}"
     mock_formatter.compile_pdf.return_value = fake_pdf
 
-    status, pdf_path, info_md, guidelines, rendered_tex = generate_resume_action(
+    status, pdf_path, tex_path, info_md, guidelines, rendered_tex = generate_resume_action(
         uploaded_file=None,
         job_title="ML Intern",
         company="DeepMind",
@@ -182,8 +191,10 @@ def test_generate_resume_action_with_mocks(tmp_path: Path) -> None:
 
     assert "Success!" in status
     assert pdf_path == str(fake_pdf)
+    assert tex_path == str(fake_tex)
     assert "DeepMind" in info_md
     assert "XYZ Formula" in guidelines
+    assert "0.0325" in guidelines
     assert "\\documentclass{article}" in rendered_tex
 
 
@@ -193,12 +204,12 @@ def test_generate_resume_action_chain_failure_handled(tmp_path: Path) -> None:
     from src.app import generate_resume_action
 
     mock_pipeline = MagicMock()
-    mock_pipeline.get_context_for_job.return_value = "Guidelines text"
+    mock_pipeline.retrieve_for_job.return_value = []
 
     mock_chain = MagicMock()
     mock_chain.generate.side_effect = RuntimeError("API quota exceeded or network timeout")
 
-    status, pdf_path, info_md, guidelines, rendered_tex = generate_resume_action(
+    status, pdf_path, tex_path, info_md, guidelines, rendered_tex = generate_resume_action(
         uploaded_file=None,
         job_title="Data Intern",
         company="Tech Co",
@@ -213,3 +224,35 @@ def test_generate_resume_action_chain_failure_handled(tmp_path: Path) -> None:
     assert "Generation Failed" in status
     assert "API quota exceeded" in status
     assert pdf_path is None
+    assert tex_path is None
+
+
+def test_format_rag_transparency_report() -> None:
+    """Test formatting the analytical RAG transparency report."""
+    from llama_index.core.schema import NodeWithScore, TextNode
+    from src.app import format_rag_transparency_report
+    from src.data.job_posting import JobPosting
+
+    job = JobPosting(
+        title="AI Engineer",
+        company="Tech Corp",
+        raw_description="Looking for AI engineer.",
+        technologies=["Python", "FastAPI"],
+    )
+
+    # Empty test
+    empty_report = format_rag_transparency_report(job, [])
+    assert "No relevant guidelines" in empty_report
+
+    # Populated test
+    node = TextNode(
+        text="ATS systems look for linear headings.",
+        metadata={"category": "resume_best_practices", "topic": "ATS Formatting", "file_name": "04_ats.md"},
+    )
+    scored = [NodeWithScore(node=node, score=0.025)]
+
+    report = format_rag_transparency_report(job, scored)
+    assert "ATS Formatting" in report
+    assert "04_ats.md" in report
+    assert "0.0250" in report
+    assert "Reciprocal Rank Fusion" in report

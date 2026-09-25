@@ -239,3 +239,18 @@
 - **Challenges:** None.
 - **Next steps:** Task 4.3 — Export, RAG Transparency tabs, and generation history.
 
+## 2026-09-25 — Task 4.3: RAG Transparency Analytics & Dual Format Export (PDF + TeX)
+- **What was done:**
+  - Implemented `format_rag_transparency_report` in `src/app.py`:
+    - Generates a Markdown report containing: query string generated from `JobPosting`, total chunks retrieved, RRF fusion details (k=60), structured Markdown table mapping Rank -> Topic -> Category -> Source Document -> RRF Score, and formatted guideline content injected into the prompt.
+  - Added dual-format export in the Gradio UI:
+    - Added `tex_download` component alongside `pdf_download`, allowing users to download both the compiled PDF and the raw `.tex` source for manual editing or Overleaf import.
+  - Updated `generate_resume_action` to return the `.tex` file path and the analytical transparency report.
+  - Created automated test in `tests/test_app.py` (`test_format_rag_transparency_report`) and updated existing tests to validate 6-tuple return values.
+  - Test suite updated: **63/63 tests passing** with 100% success in 10.84s.
+- **Decisions made:**
+  - Exposing exact RRF scores and source document names in the UI provides complete explainability for recruitment recommendations.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Task 4.4 — Generation History Tab & UI polish.
+

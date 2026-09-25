@@ -9,6 +9,8 @@ from typing import Any
 
 import gradio as gr
 
+from llama_index.core.schema import NodeWithScore
+
 from src.config import get_settings
 from src.data.candidate import CandidateProfile
 from src.data.job_posting import JobPosting
@@ -19,6 +21,7 @@ from src.generation.chain import (
 )
 from src.generation.formatter import ResumeFormatter
 from src.retrieval.pipeline import KnowledgeBasePipeline
+from src.retrieval.retriever import format_retrieved_context
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -88,6 +91,62 @@ def handle_profile_upload(file: Any) -> tuple[str, str]:
         return f"❌ Invalid candidate YAML profile: {e}", "Error in uploaded file. Please check schema."
 
 
+def format_rag_transparency_report(
+    job: JobPosting,
+    retrieved_nodes: list[NodeWithScore],
+) -> str:
+    """Generate an analytical transparency report for the RAG retrieval.
+
+    Args:
+        job: JobPosting instance queried.
+        retrieved_nodes: Ranked list of retrieved nodes with RRF scores.
+
+    Returns:
+        str: Comprehensive Markdown report detailing search query, sources, and scores.
+    """
+    if not retrieved_nodes:
+        return "*No relevant guidelines retrieved from the knowledge base for this query.*"
+
+    table_rows = []
+    for i, item in enumerate(retrieved_nodes, start=1):
+        meta = item.node.metadata or {}
+        topic = meta.get("topic", "Best Practice")
+        category = meta.get("category", "General")
+        file_name = meta.get("file_name", "doc.md")
+        score_val = f"{item.score:.4f}" if item.score is not None else "N/A"
+        table_rows.append(f"| {i} | **{topic}** | `{category}` | `{file_name}` | **{score_val}** |")
+
+    table_md = "\n".join(table_rows)
+
+    snippets = []
+    for i, item in enumerate(retrieved_nodes, start=1):
+        meta = item.node.metadata or {}
+        topic = meta.get("topic", "Guideline")
+        category = meta.get("category", "Category")
+        score_val = f"(RRF Score: {item.score:.4f})" if item.score is not None else ""
+        content = item.node.get_content().strip()
+        snippets.append(
+            f"#### 📌 Guideline {i}: {topic} `{category}` {score_val}\n\n{content}"
+        )
+
+    snippets_md = "\n\n---\n\n".join(snippets)
+
+    return f"""### 🔍 RAG Retrieval Transparency & Source Breakdown
+- **Target Query:** `{job.to_search_query()}`
+- **Retrieved Chunks:** {len(retrieved_nodes)}
+- **Reranker:** Reciprocal Rank Fusion (RRF, k=60) combining ChromaDB Vector Index + BM25 Sparse Search
+
+| # | Topic | Category | Source Document | RRF Score |
+|---|---|---|---|---|
+{table_md}
+
+---
+### 📖 Verified Knowledge Base Content Injected into LLM Prompt:
+
+{snippets_md}
+"""
+
+
 def generate_resume_action(
     uploaded_file: Any,
     job_title: str,
@@ -103,8 +162,8 @@ def generate_resume_action(
     pipeline: KnowledgeBasePipeline | None = None,
     chain: ResumeGenerationChain | None = None,
     formatter: ResumeFormatter | None = None,
-) -> tuple[str, str | None, str, str, str]:
-    """Execute the end-to-end resume generation workflow.
+) -> tuple[str, str | None, str | None, str, str, str]:
+    """Execute the end-to-end resume generation workflow with full RAG transparency.
 
     Args:
         uploaded_file: Optional custom YAML profile file upload.
@@ -126,19 +185,20 @@ def generate_resume_action(
         tuple containing:
           - pipeline_status (Markdown status string)
           - pdf_path (Path to generated PDF for gr.File download, or None)
+          - tex_path (Path to generated LaTeX source for gr.File download, or None)
           - pdf_info (Markdown metadata about the compiled PDF)
-          - rag_guidelines (Markdown text of retrieved guidelines)
-          - rendered_tex (Raw LaTeX source code)
+          - rag_guidelines (Markdown transparency report of retrieved guidelines)
+          - rendered_tex (Raw LaTeX source code string)
     """
     start_time = time.time()
 
     # 1. Validation
     if not job_title or not job_title.strip():
-        return "⚠️ **Missing Field:** Please provide a Job Title.", None, "", "", ""
+        return "⚠️ **Missing Field:** Please provide a Job Title.", None, None, "", "", ""
     if not company or not company.strip():
-        return "⚠️ **Missing Field:** Please provide a Hiring Company.", None, "", "", ""
+        return "⚠️ **Missing Field:** Please provide a Hiring Company.", None, None, "", "", ""
     if not job_description or not job_description.strip():
-        return "⚠️ **Missing Field:** Please paste the Job Description / Requirements.", None, "", "", ""
+        return "⚠️ **Missing Field:** Please paste the Job Description / Requirements.", None, None, "", "", ""
 
     settings = get_settings()
 
@@ -159,7 +219,7 @@ def generate_resume_action(
         candidate, _ = load_candidate_profile_from_path(profile_path)
     except Exception as e:
         logger.error("Failed to load candidate profile: %s", e)
-        return f"❌ **Profile Error:** {e}", None, "", "", ""
+        return f"❌ **Profile Error:** {e}", None, None, "", "", ""
 
     # 3. Build JobPosting instance
     tech_list = [t.strip() for t in technologies.split(",") if t.strip()]
@@ -174,7 +234,7 @@ def generate_resume_action(
     )
 
     try:
-        # 4. RAG Retrieval: Extract guidelines
+        # 4. RAG Retrieval: Extract guidelines & generate transparency report
         logger.info("Executing RAG retrieval for job: %s @ %s", job.title, job.company)
         active_pipeline = pipeline if pipeline is not None else KnowledgeBasePipeline(
             similarity_top_k=int(top_k),
@@ -183,7 +243,9 @@ def generate_resume_action(
         if force_reindex:
             active_pipeline.setup(force_reindex=True)
 
-        guidelines = active_pipeline.get_context_for_job(job=job, top_k=int(top_k))
+        retrieved_nodes = active_pipeline.retrieve_for_job(job=job, top_k=int(top_k))
+        guidelines_context = format_retrieved_context(retrieved_nodes)
+        transparency_report = format_rag_transparency_report(job=job, retrieved_nodes=retrieved_nodes)
 
         # 5. LLM Generation: Structured TailoredResume
         logger.info("Invoking generation chain (model=%s, temp=%.2f)...", gemini_model, temperature)
@@ -196,7 +258,7 @@ def generate_resume_action(
         tailored_resume = active_chain.generate(
             candidate=candidate,
             job=job,
-            retrieved_guidelines=guidelines,
+            retrieved_guidelines=guidelines_context,
         )
 
         # 6. Formatting & LaTeX PDF Compilation
@@ -204,6 +266,7 @@ def generate_resume_action(
         active_formatter = formatter if formatter is not None else ResumeFormatter()
         rendered_tex = active_formatter.render_latex(tailored_resume)
         pdf_path = active_formatter.compile_pdf(tailored_resume, keep_tex=True)
+        tex_path = pdf_path.with_suffix(".tex")
 
         elapsed = time.time() - start_time
         pdf_size_kb = pdf_path.stat().st_size / 1024
@@ -215,13 +278,15 @@ def generate_resume_action(
 - **Candidate:** **{tailored_resume.header.full_name}**
 - **Target Role:** **{tailored_resume.target_job_title}** @ **{tailored_resume.target_company}**
 - **Format:** Strict 1-Page PDF (ATS & Recruiter Optimized)
+- **Compiler:** Tectonic Standalone TeX Engine
 """
-        return status_msg, str(pdf_path), pdf_info_md, guidelines, rendered_tex
+        return status_msg, str(pdf_path), str(tex_path), pdf_info_md, transparency_report, rendered_tex
 
     except Exception as e:
         logger.error("End-to-end generation failed: %s", e, exc_info=True)
         return (
             f"❌ **Generation Failed:** {e}",
+            None,
             None,
             f"⚠️ **Error details:**\n```\n{e}\n```",
             "",
@@ -373,13 +438,17 @@ AI-powered, ATS-optimized, 1-page resume generator combining your verified backg
                         )
 
                     with gr.Tab("💻 LaTeX Source (.tex)"):
+                        tex_download = gr.File(
+                            label="Download LaTeX Source (.tex)",
+                            interactive=False,
+                        )
                         tex_code_display = gr.Code(
                             language="latex",
                             label="Rendered LaTeX Source Code",
                             interactive=False,
                         )
 
-        # Connect the main generation workflow
+        # Connect the main generation workflow with full transparency outputs
         generate_btn.click(
             fn=generate_resume_action,
             inputs=[
@@ -398,6 +467,7 @@ AI-powered, ATS-optimized, 1-page resume generator combining your verified backg
             outputs=[
                 pipeline_status,
                 pdf_download,
+                tex_download,
                 pdf_info_display,
                 rag_guidelines_display,
                 tex_code_display,
