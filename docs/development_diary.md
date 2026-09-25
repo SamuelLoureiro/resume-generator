@@ -201,6 +201,22 @@
   - Anti-hallucination guardrails enforced at both prompt level and Pydantic validation level.
   - Tectonic confirmed as the default LaTeX compiler due to standalone zero-dependency execution.
 - **Model used:** Gemini Flash (execution)
-- **Challenges:** None.
 - **Next steps:** Phase 4 — User Interface (Interactive Gradio App in `src/app.py` connecting Candidate Profile upload, Job Posting input, and real-time PDF generation/preview).
+
+## 2026-09-25 — Task 4.1: Gradio Web Application Layout & Input Panels
+- **What was done:**
+  - Installed `gradio` (v6.28.0) in `.venv` and verified environment dependencies.
+  - Implemented `src/app.py`:
+    - `load_candidate_profile_from_path` loading the default profile (`data/candidate_profile.yaml`) and generating an initial Markdown summary.
+    - `handle_profile_upload` supporting custom candidate YAML uploads, fallback to default, and robust path extraction.
+    - `build_app` using Gradio Blocks with two balanced columns:
+      - Left column: Candidate Profile selector/upload, target internship details (title, company, location, work model, job description, tech stack), and advanced RAG settings (model, temperature, top-k guidelines, force re-index).
+      - Right column: Real-time execution status banner and 3 tab panels (PDF Preview & Download, RAG Guidelines Applied, and Rendered LaTeX Source Code).
+  - Created test suite in `tests/test_app.py` with 6 automated tests covering default profile loading, upload handling, error fallback, and app structure creation.
+  - Test suite updated: **59/59 tests passing** with 100% success in 11.05s.
+- **Decisions made:**
+  - Designed the input panel to preload the user's default verified profile while allowing custom YAML overrides for multi-profile flexibility.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** Resolved Gradio 6.0 parameter placement deprecation warning and fixed Path object resolution in file uploads.
+- **Next steps:** Task 4.2 — End-to-End Pipeline Wiring to the "Generate Tailored Resume" button with real-time PDF rendering.
 
