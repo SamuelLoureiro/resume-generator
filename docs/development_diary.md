@@ -254,3 +254,27 @@
 - **Challenges:** None.
 - **Next steps:** Task 4.4 — Generation History Tab & UI polish.
 
+## 2026-09-25 — Task 4.4: Generation History Inspection & Phase 4 Completion
+- **What was done:**
+  - Implemented generation history backend functions in `src/app.py`:
+    - `list_generated_resumes`: Scans the output directory, extracts metadata (filename, size, modification timestamp, presence of `.tex` source), and sorts descending by generation time.
+    - `get_history_table_data`: Formats history records into tabular rows for Gradio Dataframe display.
+    - `get_history_choices`: Extracts list of filenames for dynamic dropdown selection.
+    - `on_select_history_resume`: Loads the selected resume's PDF file path, `.tex` file path, and LaTeX source code for live preview and dual-format download.
+  - Added the **📁 Generation History** tab to the Gradio interface:
+    - Interactive Dataframe displaying all generated resumes with timestamps, file sizes, and `.tex` source availability.
+    - Refresh History button for manual rescan.
+    - Historical resume viewer with dedicated PDF and LaTeX download components and live LaTeX code preview.
+    - Integrated automatic history table and dropdown updates immediately after each successful resume generation run.
+  - Added 3 comprehensive automated unit tests in `tests/test_app.py`:
+    - `test_list_generated_resumes_empty`: Verifies empty and non-existent output directory handling.
+    - `test_list_generated_resumes_populated`: Verifies sorting by mtime, table rows, and choice extraction.
+    - `test_on_select_history_resume`: Verifies loading existing resumes, missing file handling, and empty selection handling.
+  - Updated test suite: **66/66 tests passing** with 100% success in 11.15s.
+  - Successfully concluded **Phase 4 (Gradio Web Interface)**.
+- **Decisions made:**
+  - Kept history inspection fully client-side and filesystem-based without external database dependencies, keeping the application lightweight and portable.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** Fixed missing `time` import in test module and ensured generated file names are dynamically added to the dropdown choices.
+- **Next steps:** Phase 5 — Evaluation & Tuning (Setting up RAGAS evaluation pipeline for faithfulness, answer relevancy, and context precision, plus edge cases testing).
+

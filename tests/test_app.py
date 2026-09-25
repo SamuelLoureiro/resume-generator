@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import time
 import pytest
 import gradio as gr
 
@@ -90,7 +91,7 @@ def test_generate_resume_action_missing_inputs() -> None:
     from src.app import generate_resume_action
 
     # Missing job title
-    status, pdf, tex, info, guide, raw_tex = generate_resume_action(
+    status, pdf, tex, info, guide, raw_tex, table, dropdown = generate_resume_action(
         uploaded_file=None,
         job_title="",
         company="Google",
@@ -105,7 +106,7 @@ def test_generate_resume_action_missing_inputs() -> None:
     assert tex is None
 
     # Missing company
-    status, pdf, tex, info, guide, raw_tex = generate_resume_action(
+    status, pdf, tex, info, guide, raw_tex, table, dropdown = generate_resume_action(
         uploaded_file=None,
         job_title="ML Intern",
         company="",
@@ -119,7 +120,7 @@ def test_generate_resume_action_missing_inputs() -> None:
     assert pdf is None
 
     # Missing description
-    status, pdf, tex, info, guide, raw_tex = generate_resume_action(
+    status, pdf, tex, info, guide, raw_tex, table, dropdown = generate_resume_action(
         uploaded_file=None,
         job_title="ML Intern",
         company="Google",
@@ -176,7 +177,7 @@ def test_generate_resume_action_with_mocks(tmp_path: Path) -> None:
     mock_formatter.render_latex.return_value = "\\documentclass{article}\\begin{document}Hello\\end{document}"
     mock_formatter.compile_pdf.return_value = fake_pdf
 
-    status, pdf_path, tex_path, info_md, guidelines, rendered_tex = generate_resume_action(
+    status, pdf_path, tex_path, info_md, guidelines, rendered_tex, table, dropdown = generate_resume_action(
         uploaded_file=None,
         job_title="ML Intern",
         company="DeepMind",
@@ -209,7 +210,7 @@ def test_generate_resume_action_chain_failure_handled(tmp_path: Path) -> None:
     mock_chain = MagicMock()
     mock_chain.generate.side_effect = RuntimeError("API quota exceeded or network timeout")
 
-    status, pdf_path, tex_path, info_md, guidelines, rendered_tex = generate_resume_action(
+    status, pdf_path, tex_path, info_md, guidelines, rendered_tex, table, dropdown = generate_resume_action(
         uploaded_file=None,
         job_title="Data Intern",
         company="Tech Co",
@@ -256,3 +257,79 @@ def test_format_rag_transparency_report() -> None:
     assert "04_ats.md" in report
     assert "0.0250" in report
     assert "Reciprocal Rank Fusion" in report
+
+
+# ---------------------------------------------------------------------------
+# History tests (Task 4.4)
+# ---------------------------------------------------------------------------
+
+def test_list_generated_resumes_empty(tmp_path: Path) -> None:
+    """Test list_generated_resumes on empty or missing folder."""
+    from src.app import list_generated_resumes
+
+    empty_dir = tmp_path / "empty_out"
+    empty_dir.mkdir()
+    assert list_generated_resumes(empty_dir) == []
+
+    missing_dir = tmp_path / "missing_dir"
+    assert list_generated_resumes(missing_dir) == []
+
+
+def test_list_generated_resumes_populated(tmp_path: Path) -> None:
+    """Test list_generated_resumes returns metadata sorted by mtime descending."""
+    from src.app import get_history_choices, get_history_table_data, list_generated_resumes
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    pdf1 = out_dir / "resume_older.pdf"
+    pdf1.write_bytes(b"%PDF-older")
+    time.sleep(0.05)
+
+    pdf2 = out_dir / "resume_newer.pdf"
+    pdf2.write_bytes(b"%PDF-newer")
+    tex2 = out_dir / "resume_newer.tex"
+    tex2.write_text("\\documentclass{article}", encoding="utf-8")
+
+    resumes = list_generated_resumes(out_dir)
+    assert len(resumes) == 2
+    # Most recent should be first
+    assert resumes[0]["filename"] == "resume_newer.pdf"
+    assert resumes[0]["has_tex"] == "Yes"
+    assert resumes[1]["filename"] == "resume_older.pdf"
+    assert resumes[1]["has_tex"] == "No"
+
+    table_data = get_history_table_data(out_dir)
+    assert len(table_data) == 2
+    assert table_data[0][0] == "resume_newer.pdf"
+
+    choices = get_history_choices(out_dir)
+    assert choices == ["resume_newer.pdf", "resume_older.pdf"]
+
+
+def test_on_select_history_resume(tmp_path: Path) -> None:
+    """Test selecting a historical resume loads PDF path and LaTeX content."""
+    from src.app import on_select_history_resume
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    pdf = out_dir / "resume_test.pdf"
+    pdf.write_bytes(b"%PDF-test")
+    tex = out_dir / "resume_test.tex"
+    tex.write_text("\\documentclass{article}\\begin{document}Test\\end{document}", encoding="utf-8")
+
+    # Valid selection
+    pdf_ret, tex_ret, code = on_select_history_resume("resume_test.pdf", output_dir=out_dir)
+    assert pdf_ret == str(pdf)
+    assert tex_ret == str(tex)
+    assert "\\documentclass{article}" in code
+
+    # Non-existent selection
+    pdf_none, tex_none, err = on_select_history_resume("does_not_exist.pdf", output_dir=out_dir)
+    assert pdf_none is None
+    assert "not found" in err
+
+    # Empty selection
+    pdf_empty, tex_empty, blank = on_select_history_resume("", output_dir=out_dir)
+    assert pdf_empty is None

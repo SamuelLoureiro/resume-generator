@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import gradio as gr
-
 from llama_index.core.schema import NodeWithScore
 
 from src.config import get_settings
@@ -26,6 +26,10 @@ from src.retrieval.retriever import format_retrieved_context
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Candidate Profile Helpers
+# ---------------------------------------------------------------------------
 
 def load_candidate_profile_from_path(file_path: Path | str) -> tuple[CandidateProfile, str]:
     """Load and format a CandidateProfile from a YAML file.
@@ -91,6 +95,10 @@ def handle_profile_upload(file: Any) -> tuple[str, str]:
         return f"❌ Invalid candidate YAML profile: {e}", "Error in uploaded file. Please check schema."
 
 
+# ---------------------------------------------------------------------------
+# RAG Transparency & Generation Helpers
+# ---------------------------------------------------------------------------
+
 def format_rag_transparency_report(
     job: JobPosting,
     retrieved_nodes: list[NodeWithScore],
@@ -147,6 +155,121 @@ def format_rag_transparency_report(
 """
 
 
+# ---------------------------------------------------------------------------
+# History Management Helpers
+# ---------------------------------------------------------------------------
+
+def list_generated_resumes(output_dir: Path | str | None = None) -> list[dict[str, Any]]:
+    """Scan output directory and list all generated PDF resumes with metadata.
+
+    Args:
+        output_dir: Output directory path. Defaults to settings value.
+
+    Returns:
+        list[dict[str, Any]]: List of dictionary metadata sorted by most recent first.
+    """
+    settings = get_settings()
+    path = Path(output_dir) if output_dir else Path(settings.output_dir)
+
+    if not path.exists():
+        return []
+
+    pdf_files = list(path.glob("*.pdf"))
+    resumes = []
+
+    for pdf in pdf_files:
+        stat = pdf.stat()
+        mod_time = datetime.fromtimestamp(stat.st_mtime)
+        size_kb = stat.st_size / 1024
+        tex_path = pdf.with_suffix(".tex")
+
+        resumes.append({
+            "filename": pdf.name,
+            "path": str(pdf),
+            "tex_path": str(tex_path) if tex_path.exists() else None,
+            "mtime": stat.st_mtime,
+            "generated_at": mod_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "size": f"{size_kb:.1f} KB",
+            "has_tex": "Yes" if tex_path.exists() else "No",
+        })
+
+    # Sort descending by modification time (most recent first)
+    resumes.sort(key=lambda r: r["mtime"], reverse=True)
+    return resumes
+
+
+def get_history_table_data(output_dir: Path | str | None = None) -> list[list[str]]:
+    """Return table-friendly rows for Gradio Dataframe.
+
+    Args:
+        output_dir: Output directory path.
+
+    Returns:
+        list[list[str]]: List of row values.
+    """
+    resumes = list_generated_resumes(output_dir)
+    return [
+        [r["filename"], r["generated_at"], r["size"], r["has_tex"]]
+        for r in resumes
+    ]
+
+
+def get_history_choices(output_dir: Path | str | None = None) -> list[str]:
+    """Return filenames of available generated resumes for Dropdown.
+
+    Args:
+        output_dir: Output directory path.
+
+    Returns:
+        list[str]: Filenames of generated resumes.
+    """
+    resumes = list_generated_resumes(output_dir)
+    return [r["filename"] for r in resumes]
+
+
+def on_select_history_resume(
+    filename: str,
+    output_dir: Path | str | None = None,
+) -> tuple[str | None, str | None, str]:
+    """Load a historical resume's PDF and LaTeX source when selected from the dropdown.
+
+    Args:
+        filename: Selected resume filename.
+        output_dir: Output directory path.
+
+    Returns:
+        tuple containing:
+          - pdf_file_path (str | None)
+          - tex_file_path (str | None)
+          - tex_code_str (str)
+    """
+    if not filename:
+        return None, None, ""
+
+    settings = get_settings()
+    path = Path(output_dir) if output_dir else Path(settings.output_dir)
+    pdf_path = path / filename
+
+    if not pdf_path.exists():
+        return None, None, f"File `{filename}` not found."
+
+    tex_path = pdf_path.with_suffix(".tex")
+    tex_content = ""
+    tex_file_ret = None
+    if tex_path.exists():
+        tex_file_ret = str(tex_path)
+        try:
+            tex_content = tex_path.read_text(encoding="utf-8")
+        except Exception as e:
+            tex_content = f"Could not read LaTeX source: {e}"
+
+    return str(pdf_path), tex_file_ret, tex_content
+
+
+# ---------------------------------------------------------------------------
+# Main Action Workflow
+# ---------------------------------------------------------------------------
+
 def generate_resume_action(
     uploaded_file: Any,
     job_title: str,
@@ -162,24 +285,8 @@ def generate_resume_action(
     pipeline: KnowledgeBasePipeline | None = None,
     chain: ResumeGenerationChain | None = None,
     formatter: ResumeFormatter | None = None,
-) -> tuple[str, str | None, str | None, str, str, str]:
+) -> tuple[str, str | None, str | None, str, str, str, list[list[str]], gr.Dropdown]:
     """Execute the end-to-end resume generation workflow with full RAG transparency.
-
-    Args:
-        uploaded_file: Optional custom YAML profile file upload.
-        job_title: Target internship role title.
-        company: Target hiring company name.
-        location: Work location.
-        work_model: On-site, Hybrid, or Remote.
-        job_description: Full job description text.
-        technologies: Comma-separated list of technologies.
-        gemini_model: Gemini model identifier.
-        temperature: Sampling temperature for generation.
-        top_k: Number of RAG guidelines to retrieve.
-        force_reindex: Whether to rebuild the ChromaDB index.
-        pipeline: Optional injected KnowledgeBasePipeline (for testing).
-        chain: Optional injected ResumeGenerationChain (for testing).
-        formatter: Optional injected ResumeFormatter (for testing).
 
     Returns:
         tuple containing:
@@ -189,16 +296,46 @@ def generate_resume_action(
           - pdf_info (Markdown metadata about the compiled PDF)
           - rag_guidelines (Markdown transparency report of retrieved guidelines)
           - rendered_tex (Raw LaTeX source code string)
+          - updated_history_table (Refreshed table rows)
+          - updated_history_dropdown (Refreshed dropdown with newly generated item)
     """
     start_time = time.time()
+    current_choices = get_history_choices()
 
     # 1. Validation
     if not job_title or not job_title.strip():
-        return "⚠️ **Missing Field:** Please provide a Job Title.", None, None, "", "", ""
+        return (
+            "⚠️ **Missing Field:** Please provide a Job Title.",
+            None,
+            None,
+            "",
+            "",
+            "",
+            get_history_table_data(),
+            gr.Dropdown(choices=current_choices, value=current_choices[0] if current_choices else None),
+        )
     if not company or not company.strip():
-        return "⚠️ **Missing Field:** Please provide a Hiring Company.", None, None, "", "", ""
+        return (
+            "⚠️ **Missing Field:** Please provide a Hiring Company.",
+            None,
+            None,
+            "",
+            "",
+            "",
+            get_history_table_data(),
+            gr.Dropdown(choices=current_choices, value=current_choices[0] if current_choices else None),
+        )
     if not job_description or not job_description.strip():
-        return "⚠️ **Missing Field:** Please paste the Job Description / Requirements.", None, None, "", "", ""
+        return (
+            "⚠️ **Missing Field:** Please paste the Job Description / Requirements.",
+            None,
+            None,
+            "",
+            "",
+            "",
+            get_history_table_data(),
+            gr.Dropdown(choices=current_choices, value=current_choices[0] if current_choices else None),
+        )
 
     settings = get_settings()
 
@@ -219,7 +356,16 @@ def generate_resume_action(
         candidate, _ = load_candidate_profile_from_path(profile_path)
     except Exception as e:
         logger.error("Failed to load candidate profile: %s", e)
-        return f"❌ **Profile Error:** {e}", None, None, "", "", ""
+        return (
+            f"❌ **Profile Error:** {e}",
+            None,
+            None,
+            "",
+            "",
+            "",
+            get_history_table_data(),
+            gr.Dropdown(choices=current_choices, value=current_choices[0] if current_choices else None),
+        )
 
     # 3. Build JobPosting instance
     tech_list = [t.strip() for t in technologies.split(",") if t.strip()]
@@ -280,7 +426,21 @@ def generate_resume_action(
 - **Format:** Strict 1-Page PDF (ATS & Recruiter Optimized)
 - **Compiler:** Tectonic Standalone TeX Engine
 """
-        return status_msg, str(pdf_path), str(tex_path), pdf_info_md, transparency_report, rendered_tex
+        new_history = get_history_table_data(output_dir=pdf_path.parent)
+        new_choices = get_history_choices(output_dir=pdf_path.parent)
+        if pdf_path.name not in new_choices:
+            new_choices.insert(0, pdf_path.name)
+
+        return (
+            status_msg,
+            str(pdf_path),
+            str(tex_path),
+            pdf_info_md,
+            transparency_report,
+            rendered_tex,
+            new_history,
+            gr.Dropdown(choices=new_choices, value=pdf_path.name),
+        )
 
     except Exception as e:
         logger.error("End-to-end generation failed: %s", e, exc_info=True)
@@ -291,6 +451,8 @@ def generate_resume_action(
             f"⚠️ **Error details:**\n```\n{e}\n```",
             "",
             "",
+            get_history_table_data(),
+            gr.Dropdown(choices=current_choices, value=current_choices[0] if current_choices else None),
         )
 
 
@@ -448,7 +610,41 @@ AI-powered, ATS-optimized, 1-page resume generator combining your verified backg
                             interactive=False,
                         )
 
-        # Connect the main generation workflow with full transparency outputs
+                    with gr.Tab("📁 Generation History"):
+                        with gr.Row():
+                            history_refresh_btn = gr.Button("🔄 Refresh History", size="sm")
+
+                        initial_history_rows = get_history_table_data()
+                        initial_choices = get_history_choices()
+
+                        history_table = gr.Dataframe(
+                            headers=["Filename", "Generated At", "Size", "Has .tex"],
+                            value=initial_history_rows,
+                            label="Previously Generated Resumes in output/",
+                            interactive=False,
+                        )
+
+                        history_selector = gr.Dropdown(
+                            choices=initial_choices,
+                            value=initial_choices[0] if initial_choices else None,
+                            label="Select Past Resume to Inspect & Download",
+                        )
+
+                        with gr.Row():
+                            history_pdf_download = gr.File(label="Download Historical PDF", interactive=False)
+                            history_tex_download = gr.File(label="Download Historical .tex", interactive=False)
+
+                        history_tex_code = gr.Code(
+                            language="latex",
+                            label="Historical LaTeX Source Code",
+                            interactive=False,
+                        )
+
+        # -----------------------------------------------------------------
+        # Event Handlers
+        # -----------------------------------------------------------------
+
+        # 1. Main generation button
         generate_btn.click(
             fn=generate_resume_action,
             inputs=[
@@ -471,7 +667,31 @@ AI-powered, ATS-optimized, 1-page resume generator combining your verified backg
                 pdf_info_display,
                 rag_guidelines_display,
                 tex_code_display,
+                history_table,
+                history_selector,
             ],
+        )
+
+        # 2. History selector change
+        history_selector.change(
+            fn=on_select_history_resume,
+            inputs=[history_selector],
+            outputs=[
+                history_pdf_download,
+                history_tex_download,
+                history_tex_code,
+            ],
+        )
+
+        # 3. Refresh history button
+        def refresh_history_action() -> tuple[list[list[str]], gr.Dropdown]:
+            choices = get_history_choices()
+            return get_history_table_data(), gr.Dropdown(choices=choices, value=choices[0] if choices else None)
+
+        history_refresh_btn.click(
+            fn=refresh_history_action,
+            inputs=[],
+            outputs=[history_table, history_selector],
         )
 
     return app
