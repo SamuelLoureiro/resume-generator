@@ -1,41 +1,49 @@
-# Log de Decisões Técnicas (ADRs)
+# Technical Decisions Log (ADRs)
 
-## ADR-001: Google Gemini como LLM Provider
-- **Data:** 2026-09-22
-- **Status:** Aceito
-- **Contexto:** Necessidade de escolher um LLM provider para geração e embeddings
-- **Decisão:** Google Gemini (modelos 2.5 Flash e Pro) via API
-- **Justificativa:** Usuário possui Google AI Pro, sem custo adicional. Qualidade competitiva com GPT-4o
-- **Consequências:** Dependência do ecossistema Google; boa integração com LlamaIndex
+## ADR-001: Google Gemini as LLM Provider
+- **Date:** 2026-09-22
+- **Status:** Accepted
+- **Context:** Need to choose an LLM provider for generation and embeddings.
+- **Decision:** Google Gemini (models 2.5 Flash and Pro) via API.
+- **Rationale:** User holds a Google AI Pro subscription at no extra cost. Competitive quality against GPT-4o.
+- **Consequences:** Dependency on the Google ecosystem; good integration with LlamaIndex.
 
-## ADR-002: LlamaIndex como Framework RAG
-- **Data:** 2026-09-22
-- **Status:** Aceito
-- **Contexto:** Escolha entre LangChain e LlamaIndex para o pipeline RAG
-- **Decisão:** LlamaIndex
-- **Justificativa:** API mais focada e intuitiva para RAG; melhor abstração para indexação e retrieval
-- **Consequências:** Menor flexibilidade para chains complexas, mas suficiente para o caso de uso
+## ADR-002: LlamaIndex as RAG Framework
+- **Date:** 2026-09-22
+- **Status:** Accepted
+- **Context:** Choice between LangChain and LlamaIndex for the RAG pipeline.
+- **Decision:** LlamaIndex.
+- **Rationale:** More focused and intuitive API for RAG; better abstractions for indexing and retrieval.
+- **Consequences:** Less flexibility for complex chains, but sufficient for the use case.
 
-## ADR-003: PDF via LaTeX para saída
-- **Data:** 2026-09-22
-- **Status:** Aceito
-- **Contexto:** Formato de saída do currículo gerado
-- **Decisão:** PDF gerado via compilação LaTeX (Jinja2 template → .tex → pdflatex → .pdf)
-- **Justificativa:** Qualidade tipográfica superior; controle preciso de layout; padrão acadêmico/profissional
-- **Consequências:** Requer instalação de distribuição LaTeX (texlive); maior complexidade que DOCX
+## ADR-003: PDF Output via LaTeX
+- **Date:** 2026-09-22
+- **Status:** Accepted
+- **Context:** Output format for the generated resume.
+- **Decision:** PDF generated via LaTeX compilation (Jinja2 template → .tex → pdflatex → .pdf).
+- **Rationale:** Superior typographic quality; precise layout control; academic/professional standard.
+- **Consequences:** Requires a LaTeX distribution (texlive); higher complexity than DOCX.
 
-## ADR-004: Gradio como Interface
-- **Data:** 2026-09-22
-- **Status:** Aceito
-- **Contexto:** Framework de UI para demonstração e uso do sistema
-- **Decisão:** Gradio ao invés de Streamlit
-- **Justificativa:** Deploy fácil no HuggingFace Spaces; API simples; bom para demos de ML
-- **Consequências:** Menos flexibilidade de layout que Streamlit, mas suficiente
+## ADR-004: Gradio as Interface Framework
+- **Date:** 2026-09-22
+- **Status:** Accepted
+- **Context:** UI framework for demonstration and usage of the system.
+- **Decision:** Gradio instead of Streamlit.
+- **Rationale:** Easy deployment on HuggingFace Spaces; simple API; well-suited for ML demos.
+- **Consequences:** Less layout flexibility than Streamlit, but sufficient for the use case.
 
-## ADR-005: ChromaDB como Vector Store
-- **Data:** 2026-09-22
-- **Status:** Aceito
-- **Contexto:** Necessidade de armazenar e buscar embeddings
-- **Decisão:** ChromaDB com persistência local
-- **Justificativa:** Leve, sem infraestrutura externa, boa integração com LlamaIndex
-- **Consequências:** Não escala para milhões de documentos, mas o dataset é pequeno
+## ADR-005: ChromaDB as Vector Store
+- **Date:** 2026-09-22
+- **Status:** Accepted
+- **Context:** Need to store and search embeddings.
+- **Decision:** ChromaDB with local persistence.
+- **Rationale:** Lightweight, no external infrastructure, good integration with LlamaIndex.
+- **Consequences:** Does not scale to millions of documents, but the dataset is small.
+
+## ADR-006: Codebase Standardization to English
+- **Date:** 2026-09-25
+- **Status:** Accepted
+- **Context:** Initial code, docs, and comments were partially written in Portuguese, reducing readability for international contributors and tools.
+- **Decision:** Migrate all identifiers, comments, docstrings, logs, documentation, and planning files to idiomatic English. Runtime data values (e.g. candidate profile content, knowledge base documents) remain in Portuguese where applicable.
+- **Rationale:** Consistent English codebase improves maintainability, static analysis, and portfolio presentation.
+- **Consequences:** One-time translation effort across all modules; no runtime logic changes.

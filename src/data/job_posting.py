@@ -10,10 +10,10 @@ class JobPosting(BaseModel):
     """Internship job description and requirements structure.
 
     Attributes:
-        title: Title of the internship position (e.g. 'Estágio em Inteligência Artificial').
+        title: Title of the internship position (e.g. 'Machine Learning Engineering Intern').
         company: Name of the hiring company or organization.
-        location: City, state or 'Remoto / Brasil'.
-        work_model: Work modality ('Presencial', 'Híbrido', 'Remoto').
+        location: City, state or 'Remote / Brazil'.
+        work_model: Work modality ('On-site', 'Hybrid', 'Remote').
         raw_description: Full text description provided by the user.
         requirements: List of mandatory requirements or qualifications.
         desirables: List of nice-to-have or preferred skills.
@@ -28,8 +28,8 @@ class JobPosting(BaseModel):
     company: str = Field(..., description="Hiring company name")
     location: str | None = Field(default=None, description="Job location")
     work_model: str | None = Field(
-        default="Híbrido",
-        description="Work model: Remoto, Híbrido, or Presencial",
+        default="Hybrid",
+        description="Work model: Remote, Hybrid, or On-site",
     )
     raw_description: str = Field(
         ...,
@@ -65,16 +65,16 @@ class JobPosting(BaseModel):
         Returns:
             str: Semantic query string.
         """
-        parts = [f"Vaga: {self.title} na empresa {self.company}"]
+        parts = [f"Job: {self.title} at {self.company}"]
 
         if self.technologies:
-            parts.append(f"Tecnologias: {', '.join(self.technologies)}")
+            parts.append(f"Technologies: {', '.join(self.technologies)}")
 
         if self.requirements:
-            parts.append(f"Requisitos: {'; '.join(self.requirements[:5])}")
+            parts.append(f"Requirements: {'; '.join(self.requirements[:5])}")
 
         if self.keywords:
-            parts.append(f"Palavras-chave: {', '.join(self.keywords[:5])}")
+            parts.append(f"Keywords: {', '.join(self.keywords[:5])}")
 
         return "\n".join(parts)
 
@@ -85,30 +85,31 @@ class JobPosting(BaseModel):
             str: Clean text representation for injection in prompt templates.
         """
         lines = [
-            f"**Cargo:** {self.title}",
-            f"**Empresa:** {self.company}",
+            f"**Role:** {self.title}",
+            f"**Company:** {self.company}",
         ]
         if self.location:
-            lines.append(f"**Localização/Modelo:** {self.location} ({self.work_model})")
+            lines.append(f"**Location/Model:** {self.location} ({self.work_model})")
 
         if self.requirements:
-            lines.append("\n**Requisitos Obrigatórios:**")
+            lines.append("\n**Mandatory Requirements:**")
             for req in self.requirements:
                 lines.append(f"- {req}")
 
         if self.desirables:
-            lines.append("\n**Diferenciais / Desejáveis:**")
+            lines.append("\n**Nice-to-Have / Preferred:**")
             for des in self.desirables:
                 lines.append(f"- {des}")
 
         if self.responsibilities:
-            lines.append("\n**Principais Atividades:**")
+            lines.append("\n**Main Responsibilities:**")
             for resp in self.responsibilities:
                 lines.append(f"- {resp}")
 
         if self.technologies:
-            lines.append(f"\n**Stack Técnica:** {', '.join(self.technologies)}")
+            lines.append(f"\n**Tech Stack:** {', '.join(self.technologies)}")
 
-        lines.append(f"\n**Descrição Completa:**\n{self.raw_description.strip()}")
+        lines.append(f"\n**Full Description:**\n{self.raw_description.strip()}")
 
         return "\n".join(lines)
+

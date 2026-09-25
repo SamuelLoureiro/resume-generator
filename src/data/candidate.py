@@ -82,9 +82,9 @@ class Experience(BaseModel):
     Attributes:
         title: Job or role title.
         organization: Company, laboratory or institution name.
-        location: City and state, or 'Remoto'.
+        location: City and state, or 'Remote'.
         start_date: Start date formatted as 'MM/YYYY'.
-        end_date: End date formatted as 'MM/YYYY' or 'Presente'.
+        end_date: End date formatted as 'MM/YYYY' or 'Present'.
         current: True if this is the candidate's current role.
         bullets: Action-oriented achievement bullet points.
         technologies: Technologies and tools used in this role.
@@ -96,7 +96,7 @@ class Experience(BaseModel):
     organization: str = Field(..., description="Company or organization name")
     location: str | None = Field(default=None, description="Location or Remote")
     start_date: str = Field(..., description="Start date (MM/YYYY)")
-    end_date: str = Field(default="Presente", description="End date (MM/YYYY or Presente)")
+    end_date: str = Field(default="Present", description="End date (MM/YYYY or Present)")
     current: bool = Field(default=False, description="Whether this is the current job")
     bullets: list[str] = Field(
         default_factory=list,

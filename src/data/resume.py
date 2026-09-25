@@ -105,7 +105,7 @@ class ResumeExperience(BaseModel):
         title: Position or role title.
         organization: Organization or company name.
         period: Start and end dates.
-        location: City and state or 'Remoto'.
+        location: City and state or 'Remote'.
         bullets: Action-oriented bullet points tailored to the job.
         technologies: Tech stack tags for the experience.
     """
@@ -115,7 +115,7 @@ class ResumeExperience(BaseModel):
     title: str = Field(..., description="Role title")
     organization: str = Field(..., description="Company name")
     period: str = Field(..., description="Date range")
-    location: str | None = Field(default=None, description="Location or Remoto")
+    location: str | None = Field(default=None, description="Location or Remote")
     bullets: list[str] = Field(
         default_factory=list,
         description="Tailored accomplishment bullet points",

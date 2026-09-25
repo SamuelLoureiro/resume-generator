@@ -1,113 +1,130 @@
-# Diário de Desenvolvimento
+# Development Diary
 
-## 2026-09-22 — Planejamento Inicial
-- **O que foi feito:** Definição completa da arquitetura, stack tecnológica e plano de 6 fases
-- **Decisões tomadas:**
+## 2026-09-22 — Initial Planning
+- **What was done:** Full definition of the architecture, technology stack, and 6-phase development plan.
+- **Decisions made:**
   - LLM: Google Gemini (AI Pro)
-  - Framework RAG: LlamaIndex
-  - Saída: PDF via LaTeX
+  - RAG Framework: LlamaIndex
+  - Output: PDF via LaTeX
   - Interface: Gradio
   - Vector Store: ChromaDB
-  - Embeddings: text-embedding-004 do Google
-- **Modelo usado:** Claude Opus (planejamento)
-- **Desafios:** Nenhum nesta fase
-- **Próximos passos:** Iniciar Fase 1 — setup do projeto (pyproject.toml, schemas, knowledge base)
+  - Embeddings: Google text-embedding-004
+- **Model used:** Claude Opus (planning)
+- **Challenges:** None at this stage.
+- **Next steps:** Start Phase 1 — project setup (pyproject.toml, schemas, knowledge base).
 
-## 2026-09-22 — Tarefa 1.1: Inicialização do Projeto e Configuração
-- **O que foi feito:**
-  - Configuração do `pyproject.toml` com LlamaIndex, Google Gemini, ChromaDB, Gradio, Jinja2, Pydantic, etc.
-  - Criação do `.env.example` com template de chaves e variáveis do sistema
-  - Criação do `.gitignore` para Python, ambientes virtuais, LaTeX temporários e ChromaDB
-  - Implementação de `src/__init__.py` e `src/config.py` com Pydantic Settings v2
-  - Criação da árvore de diretórios base (`src/data/`, `src/ingestion/`, `src/retrieval/`, `src/generation/`, `src/knowledge_base/`, `templates/`, `data/job_postings/`, `output/`, `tests/`)
-- **Decisões tomadas:**
-  - Inclusão de `pydantic-settings` para gestão robusta de configurações baseadas em `.env`
-  - Separação de submódulos em `src/` respeitando a arquitetura
-- **Modelo usado:** Gemini Flash (execução)
-- **Desafios:** Nenhum
-- **Próximos passos:** Tarefa 1.2 — Schemas Pydantic (`src/data/*.py`)
+## 2026-09-22 — Task 1.1: Project Initialization and Configuration
+- **What was done:**
+  - Set up `pyproject.toml` with LlamaIndex, Google Gemini, ChromaDB, Gradio, Jinja2, Pydantic, etc.
+  - Created `.env.example` with a template for API keys and system variables.
+  - Created `.gitignore` covering Python, virtual environments, LaTeX intermediaries, and ChromaDB.
+  - Implemented `src/__init__.py` and `src/config.py` with Pydantic Settings v2.
+  - Created the base directory tree (`src/data/`, `src/ingestion/`, `src/retrieval/`, `src/generation/`, `src/knowledge_base/`, `templates/`, `data/job_postings/`, `output/`, `tests/`).
+- **Decisions made:**
+  - Included `pydantic-settings` for robust `.env`-based configuration management.
+  - Separated submodules in `src/` following the defined architecture.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Task 1.2 — Pydantic schemas (`src/data/*.py`).
 
-## 2026-09-23 — Tarefa 1.2: Modelagem de Schemas Pydantic e Regras de Segurança
-- **O que foi feito:**
-  - Adicionadas regras de segurança e privacidade em `.agents/GEMINI.md` (blindagem do `.env` contra inspeção de agentes).
-  - Implementação de `src/data/candidate.py` com schemas completos (`CandidateProfile`, `ContactInfo`, `Education`, `Experience`, `Project`, `Skills`, etc.) e suporte a importação/exportação YAML.
-  - Implementação de `src/data/job_posting.py` com estrutura de requisitos, diferenciais e gerador de queries de busca semântica (`to_search_query`).
-  - Implementação de `src/data/resume.py` com suporte à sanitização/escape automático de caracteres especiais de LaTeX (`&`, `%`, `$`, `#`, `_`, etc.) via `to_latex_context()`.
-  - Exportação unificada dos modelos em `src/data/__init__.py`.
-  - Criação de suíte de testes unitários em `tests/test_schemas.py` com 6 testes aprovados (100% de sucesso).
-- **Decisões tomadas:**
-  - Sanitização profunda de strings para LaTeX em nível de modelo de dados para prevenir falhas de compilação no Jinja2/pdflatex.
-  - Execução e validação de testes 100% offline, sem necessidade de credenciais de API.
-- **Modelo usado:** Gemini Flash (execução)
-- **Desafios:** Nenhum
-- **Próximos passos:** Tarefa 1.3 — Criação do template `data/candidate_profile.yaml` (dados do candidato) e Tarefa 1.4 — Template LaTeX (`templates/resume.tex.j2`)
+## 2026-09-23 — Task 1.2: Pydantic Schema Modeling and Security Rules
+- **What was done:**
+  - Added security and privacy rules to `.agents/GEMINI.md` (shielding `.env` from agent inspection).
+  - Implemented `src/data/candidate.py` with complete schemas (`CandidateProfile`, `ContactInfo`, `Education`, `Experience`, `Project`, `Skills`, etc.) and YAML import/export support.
+  - Implemented `src/data/job_posting.py` with structured requirements, desirables, and a semantic search query generator (`to_search_query`).
+  - Implemented `src/data/resume.py` with automatic sanitization/escaping of special LaTeX characters (`&`, `%`, `$`, `#`, `_`, etc.) via `to_latex_context()`.
+  - Unified model exports in `src/data/__init__.py`.
+  - Created a unit test suite in `tests/test_schemas.py` with 6 passing tests (100% success).
+- **Decisions made:**
+  - Deep string sanitization for LaTeX at the data model level to prevent compilation failures in Jinja2/pdflatex.
+  - Tests run 100% offline, no API credentials required.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Task 1.3 — Create `data/candidate_profile.yaml` (candidate data) and Task 1.4 — LaTeX template (`templates/resume.tex.j2`).
 
-## 2026-09-23 — Tarefa 1.3: Criação da Base de Perfil do Candidato (YAML)
-- **O que foi feito:**
-  - Criação do arquivo estruturado e comentado `data/candidate_profile.yaml` com todas as seções mapeadas: contato, resumo, educação (graduação, disciplinas, bolsas), experiências (IC, projetos), portfólio de projetos práticos em IA/RAG, habilidades técnicas/soft skills categorizadas, idiomas e certificações.
-  - Adição de teste unitário automatizado em `tests/test_schemas.py` garantindo que o arquivo YAML default seja sempre 100% válido contra o schema `CandidateProfile`.
-  - Suíte de testes passando com 7/7 sucessos.
-- **Decisões tomadas:**
-  - Estruturação do YAML em português nos valores e inglês nas chaves, mantendo facilidade de preenchimento para o usuário e aderência estrita aos modelos Pydantic.
-- **Modelo usado:** Gemini Flash (execução)
-- **Desafios:** Nenhum
-- **Próximos passos:** Tarefa 1.4 — Template LaTeX (`templates/resume.tex.j2`) e Tarefas 1.5/1.6 — Curadoria da base de conhecimento (boas práticas e RH)
+## 2026-09-23 — Task 1.3: Candidate Profile Base (YAML)
+- **What was done:**
+  - Created the structured and annotated `data/candidate_profile.yaml` with all mapped sections: contact, summary, education (undergraduate, coursework, scholarships), experiences (undergraduate research, junior enterprise), practical AI/RAG portfolio projects, categorized technical and soft skills, languages, and certifications.
+  - Added an automated unit test in `tests/test_schemas.py` ensuring the default YAML file always validates 100% against the `CandidateProfile` schema.
+  - Test suite passing 7/7.
+- **Decisions made:**
+  - YAML structured with Portuguese content values and English keys, maintaining ease of use for the user while strictly adhering to the Pydantic models.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Task 1.4 — LaTeX template (`templates/resume.tex.j2`) and Tasks 1.5/1.6 — Knowledge base curation (best practices and HR recruitment).
 
-## 2026-09-23 — Tarefa 1.4: Criação do Template LaTeX Dinâmico (Jinja2)
-- **O que foi feito:**
-  - Criação do template LaTeX modular em `templates/resume.tex.j2` otimizado para currículos de estágio em 1 página.
-  - Utilização de delimitadores Jinja2 não-conflitantes (`<% ... %>` para blocos e `<< ... >>` para variáveis) eliminando qualquer colisão com chaves (`{}`) e comandos nativos do LaTeX.
-  - Implementação de seções: Cabeçalho com links (e-mail, LinkedIn, GitHub, portfólio), Objetivo Profissional alinhado à vaga, Formação Acadêmica, Experiências com bullets de impacto e tecnologias, Projetos em Destaque, Habilidades Técnicas categorizadas, Idiomas e Certificações.
-  - Criação de teste unitário em `tests/test_template.py` validando renderização completa, injeção de dados de `TailoredResume.to_latex_context()` e escape de caracteres especiais.
-  - Suíte de testes atualizada: 8/8 testes passando com sucesso no `pytest`.
-- **Decisões tomadas:**
-  - Adoção de pacotes padrão e leves do LaTeX (`article`, `geometry`, `titlesec`, `enumitem`, `hyperref`, `xcolor`), compatíveis com qualquer distribuição LaTeX sem necessidade de fontes ou pacotes proprietários.
-- **Modelo usado:** Gemini Flash (execução)
-- **Desafios:** Nenhum
-- **Próximos passos:** Tarefas 1.5 e 1.6 — Curadoria da base de conhecimento (boas práticas de currículo e recrutamento de estágio em `src/knowledge_base/`)
+## 2026-09-23 — Task 1.4: Dynamic LaTeX Template (Jinja2)
+- **What was done:**
+  - Created the modular LaTeX template in `templates/resume.tex.j2`, optimized for one-page internship resumes.
+  - Used non-conflicting Jinja2 delimiters (`<% ... %>` for blocks and `<< ... >>` for variables) to eliminate any collision with LaTeX curly braces and native commands.
+  - Implemented sections: Header with clickable links (email, LinkedIn, GitHub, portfolio), Professional Objective aligned to the job, Academic Education, Experiences with impact bullets and technologies, Featured Projects, Categorized Technical Skills, Languages and Certifications.
+  - Created a unit test in `tests/test_template.py` validating full rendering, data injection from `TailoredResume.to_latex_context()`, and special character escaping.
+  - Updated test suite: 8/8 tests passing.
+- **Decisions made:**
+  - Adopted standard lightweight LaTeX packages (`article`, `geometry`, `titlesec`, `enumitem`, `hyperref`, `xcolor`), compatible with any LaTeX distribution without proprietary fonts or packages.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Tasks 1.5 and 1.6 — Knowledge base curation (resume best practices and HR/internship recruitment in `src/knowledge_base/`).
 
-## 2026-09-24 — Tarefa 1.5: Curadoria da Base de Conhecimento — Boas Práticas de Currículo
-- **O que foi feito:**
-  - Criação de 5 documentos markdown técnicos e modulares em `src/knowledge_base/resume_best_practices/`:
-    - `01_estrutura_curriculo_estagio.md`: Regra de 1 página, ordem hierárquica ideal para estudantes (educação no topo) e escaneabilidade visual.
-    - `02_metodo_star_xyz_bullets.md`: Fórmula XYZ do Google, método STAR e estratégias para quantificar resultados técnicos sem experiência corporativa prévia.
-    - `03_verbos_de_acao_e_vocabulario.md`: Catálogo de verbos de ação fortes categorizados por domínio (desenvolvimento, IA/dados, performance, liderança) e lista negra de palavras fracas/clichês.
-    - `04_otimizacao_ats.md`: Arquitetura dos robôs de triagem ATS, correspondência contextual de palavras-chave e checklist de compatibilidade.
-    - `05_erros_comuns_e_red_flags.md`: Red flags fatais na triagem dos 6 segundos (erros ortográficos, currículo genérico, alucinação de competências).
-  - Execução da suíte de testes: 8/8 testes passando.
-- **Decisões tomadas:**
-  - Estruturação dos textos com cabeçalhos semânticos claros para otimizar o particionamento em chunks pelo `SentenceSplitter` do LlamaIndex na Fase 2.
-- **Modelo usado:** Gemini Flash (execução)
-- **Desafios:** Nenhum
-- **Próximos passos:** Tarefa 1.6 — Curadoria da base de conhecimento de RH e recrutamento de estágio (`src/knowledge_base/hr_recruitment/`)
+## 2026-09-24 — Task 1.5: Knowledge Base Curation — Resume Best Practices
+- **What was done:**
+  - Created 5 technical and modular markdown documents in `src/knowledge_base/resume_best_practices/`:
+    - `01_estrutura_curriculo_estagio.md`: One-page rule, ideal hierarchical order for students (education at the top), and visual scannability.
+    - `02_metodo_star_xyz_bullets.md`: Google's XYZ formula, STAR method, and strategies to quantify technical results without prior corporate experience.
+    - `03_verbos_de_acao_e_vocabulario.md`: Catalog of strong action verbs categorized by domain (development, AI/data, performance, leadership) and a blacklist of weak/cliché words.
+    - `04_otimizacao_ats.md`: Architecture of ATS screening robots, contextual keyword matching, and compatibility checklist.
+    - `05_erros_comuns_e_red_flags.md`: Fatal red flags in 6-second screening (spelling errors, generic resume, fabricated competencies).
+  - Test suite: 8/8 passing.
+- **Decisions made:**
+  - Documents structured with clear semantic headings to optimize chunk splitting by `SentenceSplitter` in Phase 2.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Task 1.6 — HR and internship recruitment knowledge base curation (`src/knowledge_base/hr_recruitment/`).
 
-## 2026-09-24 — Tarefa 1.6: Curadoria da Base de Conhecimento — Recrutamento e RH de Estágio
-- **O que foi feito:**
-  - Criação de 5 documentos markdown especializados em `src/knowledge_base/hr_recruitment/`:
-    - `01_o_que_recrutadores_procuram_em_estagio.md`: Foco em potencial de aprendizado (learning agility), fundamentos sólidos e senso de dono (ownership).
-    - `02_diferencas_big_techs_vs_startups.md`: Critérios de avaliação em Big Techs (escala, arquitetura, algoritmos) vs Startups (velocidade, end-to-end, MVPs e pragmatismo).
-    - `03_soft_skills_e_diferenciais_competitivos.md`: Princípio "Mostre, Não Apenas Diga" (Show, Don't Tell) para comunicação, trabalho em equipe e curiosidade intelectual.
-    - `04_valorizacao_experiencias_academicas_e_projetos.md`: Como converter Iniciação Científica, Empresa Júnior, Monitoria e Projetos Pessoais em experiência de alto valor no mercado corporativo.
-    - `05_adaptacao_por_trilha_tecnica.md`: Diretrizes de priorização semântica por trilhas (Inteligência Artificial / RAG, Engenharia de Dados, Backend).
-  - Implementação de teste unitário em `tests/test_knowledge_base.py` validando presença, extensão e formato de todos os documentos da base de conhecimento.
-  - Suíte de testes atualizada: 9/9 testes passando com 100% de sucesso.
-- **Decisões tomadas:**
-  - Encerramento completo de todos os entregáveis da **Fase 1 (Fundação e Dados)** do projeto.
-- **Modelo usado:** Gemini Flash (execução)
-- **Desafios:** Nenhum
-- **Próximos passos:** Iniciar a **Fase 2 — Pipeline RAG Core** (Loader com `SimpleDirectoryReader`, indexação com `SentenceSplitter`, embeddings com `models/text-embedding-004`, vector store ChromaDB e retriever híbrido).
+## 2026-09-24 — Task 1.6: Knowledge Base Curation — HR and Internship Recruitment
+- **What was done:**
+  - Created 5 specialized markdown documents in `src/knowledge_base/hr_recruitment/`:
+    - `01_o_que_recrutadores_procuram_em_estagio.md`: Focus on learning agility, solid fundamentals, and ownership mindset.
+    - `02_diferencas_big_techs_vs_startups.md`: Evaluation criteria at Big Techs (scale, architecture, algorithms) vs. Startups (speed, end-to-end, MVPs, pragmatism).
+    - `03_soft_skills_e_diferenciais_competitivos.md`: "Show, Don't Tell" principle for communication, teamwork, and intellectual curiosity.
+    - `04_valorizacao_experiencias_academicas_e_projetos.md`: How to convert undergraduate research, junior enterprise, tutoring, and personal projects into high-value corporate market experience.
+    - `05_adaptacao_por_trilha_tecnica.md`: Semantic prioritization guidelines by technical tracks (AI/RAG, Data Engineering, Backend).
+  - Implemented a unit test in `tests/test_knowledge_base.py` validating the presence, size, and format of all knowledge base documents.
+  - Updated test suite: 9/9 passing with 100% success.
+- **Decisions made:**
+  - Complete closure of all deliverables for **Phase 1 (Foundation & Data)** of the project.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Start **Phase 2 — RAG Core Pipeline** (Loader with `SimpleDirectoryReader`, indexing with `SentenceSplitter`, embeddings with `models/text-embedding-004`, ChromaDB vector store, and hybrid retriever).
 
-## 2026-09-25 — Tarefa 2.1: Implementação do Document Loader (LlamaIndex)
-- **O que foi feito:**
-  - Instalação e configuração de dependências do LlamaIndex (`llama-index-core`, `llama-index-readers-file`, `llama-index-llms-gemini`, `llama-index-embeddings-gemini`, `llama-index-vector-stores-chroma`, `chromadb`) no ambiente virtual `.venv`.
-  - Implementação de `src/ingestion/loader.py` com a classe `KnowledgeBaseLoader` e função auxiliar `extract_title_from_markdown`:
-    - Integração de `SimpleDirectoryReader` para varredura recursiva de arquivos Markdown.
-    - Enriquecimento automático de metadados em cada documento (`category`, `topic`, `file_name`).
-    - Métodos para carga seletiva por categoria (`load_category`) e carga agregada (`load_all_documents`).
-  - Criação de testes unitários em `tests/test_ingestion.py` cobrindo extração de títulos, carga de categorias, agregação de documentos, diretórios customizados e tratamento de exceções.
-  - Suíte de testes atualizada: 15/15 testes passando com 100% de sucesso.
-- **Decisões tomadas:**
-  - Enriquecimento dos metadados dos nós na carga para permitir filtragem contextual precisa no ChromaDB durante o retrieval.
-- **Modelo usado:** Gemini Flash (execução)
-- **Desafios:** Resolução de dependências gRPC resolvida com sucesso pelo pip.
-- **Próximos passos:** Tarefa 2.2 — Indexação com `SentenceSplitter` e geração de embeddings (`src/ingestion/indexer.py`).
+## 2026-09-25 — Task 2.1: Document Loader Implementation (LlamaIndex)
+- **What was done:**
+  - Installed and configured LlamaIndex dependencies (`llama-index-core`, `llama-index-readers-file`, `llama-index-llms-gemini`, `llama-index-embeddings-gemini`, `llama-index-vector-stores-chroma`, `chromadb`) in the `.venv` virtual environment.
+  - Implemented `src/ingestion/loader.py` with the `KnowledgeBaseLoader` class and the `extract_title_from_markdown` helper function:
+    - Integrated `SimpleDirectoryReader` for recursive Markdown file scanning.
+    - Automatic metadata enrichment for each document (`category`, `topic`, `file_name`).
+    - Methods for selective loading by category (`load_category`) and aggregated loading (`load_all_documents`).
+  - Created unit tests in `tests/test_ingestion.py` covering title extraction, category loading, document aggregation, custom directories, and exception handling.
+  - Updated test suite: 15/15 passing with 100% success.
+- **Decisions made:**
+  - Metadata enrichment at load time to enable precise contextual filtering in ChromaDB during retrieval.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** gRPC dependency resolution succeeded via pip without issues.
+- **Next steps:** Task 2.2 — Indexing with `SentenceSplitter` and embedding generation (`src/ingestion/indexer.py`).
+
+## 2026-09-25 — Refactoring Phase 1: Codebase Standardization to English
+- **What was done:**
+  - Translated all planning and documentation files to English: `docs/architecture.md`, `docs/decisions_log.md`, `docs/development_diary.md`.
+  - Translated all inline string labels in `src/data/job_posting.py` (`to_search_query`, `to_prompt_context`) from Portuguese to English.
+  - Updated default field values and docstring references in `src/data/candidate.py` and `src/data/job_posting.py` from Portuguese to English (`"Presente"` → `"Present"`, `"Híbrido"` → `"Hybrid"`, etc.).
+  - Updated `src/data/resume.py` docstring references to remove Portuguese examples.
+  - Updated test assertions in `tests/test_schemas.py` to match the new English string labels.
+  - Updated test strings in `tests/test_ingestion.py` to reflect English defaults.
+  - Added ADR-006 to `docs/decisions_log.md` documenting the standardization decision.
+  - Marked Phase 1 as complete in `refactor_plan.md`.
+  - Full test suite passing: 15/15.
+- **Decisions made:**
+  - Runtime data values in the candidate profile YAML and knowledge base markdown documents remain in Portuguese (user-facing content, not identifiers or labels).
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** None.
+- **Next steps:** Refactoring Phase 2 — Refactor data ingestion, chunking, vector store, retrieval, and generation modules.

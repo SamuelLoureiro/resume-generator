@@ -9,19 +9,19 @@ from src.ingestion.loader import KnowledgeBaseLoader, extract_title_from_markdow
 def test_extract_title_from_markdown() -> None:
     """Test extracting H1 titles from various markdown strings."""
     # Standard H1 header
-    md1 = "# Título Principal\nTexto explicativo aqui."
-    assert extract_title_from_markdown(md1) == "Título Principal"
+    md1 = "# Main Title\nSome explanatory text here."
+    assert extract_title_from_markdown(md1) == "Main Title"
 
     # Header with leading/trailing spaces
-    md2 = "\n\n  #   Outro Título  \nMais conteúdo."
-    assert extract_title_from_markdown(md2) == "Outro Título"
+    md2 = "\n\n  #   Another Title  \nMore content."
+    assert extract_title_from_markdown(md2) == "Another Title"
 
     # No H1 header, should return default fallback
-    md3 = "## Apenas H2\nTexto sem H1."
+    md3 = "## Only H2\nText without H1."
     assert extract_title_from_markdown(md3, default="Fallback") == "Fallback"
 
     # Empty string
-    assert extract_title_from_markdown("", default="Vazio") == "Vazio"
+    assert extract_title_from_markdown("", default="Empty") == "Empty"
 
 
 def test_loader_load_category() -> None:
@@ -66,20 +66,20 @@ def test_loader_non_existent_category() -> None:
     """Test error handling when requesting an invalid category."""
     loader = KnowledgeBaseLoader()
     with pytest.raises(FileNotFoundError):
-        loader.load_category("categoria_que_nao_existe")
+        loader.load_category("category_that_does_not_exist")
 
 
 def test_loader_custom_directory(tmp_path: Path) -> None:
     """Test loader with a custom/mock directory structure."""
     custom_category = tmp_path / "custom_kb"
     custom_category.mkdir(parents=True)
-    sample_file = custom_category / "teste.md"
-    sample_file.write_text("# Teste Customizado\nConteúdo para teste.", encoding="utf-8")
+    sample_file = custom_category / "sample.md"
+    sample_file.write_text("# Custom Test\nContent for testing.", encoding="utf-8")
 
     loader = KnowledgeBaseLoader(knowledge_base_dir=tmp_path)
     docs = loader.load_category("custom_kb")
 
     assert len(docs) == 1
     assert docs[0].metadata["category"] == "custom_kb"
-    assert docs[0].metadata["topic"] == "Teste Customizado"
-    assert "Conteúdo para teste." in docs[0].text
+    assert docs[0].metadata["topic"] == "Custom Test"
+    assert "Content for testing." in docs[0].text

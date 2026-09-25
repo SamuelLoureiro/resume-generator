@@ -142,13 +142,13 @@ def test_candidate_profile_missing_required_fields() -> None:
 def test_job_posting_helpers() -> None:
     """Test search query generation and prompt formatting in JobPosting."""
     job = JobPosting(
-        title="Estágio em Engenharia de Machine Learning",
+        title="Machine Learning Engineering Intern",
         company="Startup AI",
         location="São Paulo, SP",
-        work_model="Híbrido",
-        raw_description="Procuramos estagiário para atuar com modelos de LLM e RAG.",
-        requirements=["Conhecimento em Python", "Familiaridade com Git e APIs REST"],
-        desirables=["Experiência prévia com LangChain ou LlamaIndex"],
+        work_model="Hybrid",
+        raw_description="Looking for an intern to work with LLM and RAG models.",
+        requirements=["Python proficiency", "Familiarity with Git and REST APIs"],
+        desirables=["Prior experience with LangChain or LlamaIndex"],
         technologies=["Python", "FastAPI", "Docker", "ChromaDB"],
         keywords=["LLM", "RAG", "Prompt Engineering"],
     )
@@ -156,12 +156,12 @@ def test_job_posting_helpers() -> None:
     query = job.to_search_query()
     assert "Startup AI" in query
     assert "Python" in query
-    assert "Requisitos:" in query
+    assert "Requirements:" in query
 
     prompt_context = job.to_prompt_context()
-    assert "**Cargo:** Estágio em Engenharia de Machine Learning" in prompt_context
-    assert "Requisitos Obrigatórios:" in prompt_context
-    assert "- Conhecimento em Python" in prompt_context
+    assert "**Role:** Machine Learning Engineering Intern" in prompt_context
+    assert "Mandatory Requirements:" in prompt_context
+    assert "- Python proficiency" in prompt_context
 
 
 def test_tailored_resume_latex_escaping() -> None:

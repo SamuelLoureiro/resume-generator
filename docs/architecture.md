@@ -1,74 +1,74 @@
-# Arquitetura — Gerador de Currículos com RAG
+# Architecture — Resume Generator with RAG
 
-## Visão Geral
+## Overview
 
-Sistema RAG que gera currículos personalizados para vagas de estágio,
-combinando dados pessoais do candidato com conhecimento especializado
-em recrutamento e boas práticas de currículo.
+RAG-based system that generates tailored resumes for internship positions,
+combining candidate personal data with specialized knowledge on recruitment
+and resume best practices.
 
 ## Stack
 
-| Componente | Tecnologia |
-|---|---|
-| Linguagem | Python 3.11+ |
-| LLM | Google Gemini 2.5 Flash/Pro |
-| Framework RAG | LlamaIndex |
-| Embeddings | text-embedding-004 (Google) |
-| Vector Store | ChromaDB |
-| Saída | PDF via LaTeX (Jinja2) |
-| Interface | Gradio |
-| Testes | pytest + RAGAS |
+| Component       | Technology                      |
+|-----------------|---------------------------------|
+| Language        | Python 3.11+                    |
+| LLM             | Google Gemini 2.5 Flash/Pro     |
+| RAG Framework   | LlamaIndex                      |
+| Embeddings      | text-embedding-004 (Google)     |
+| Vector Store    | ChromaDB                        |
+| Output          | PDF via LaTeX (Jinja2)          |
+| Interface       | Gradio                          |
+| Testing         | pytest + RAGAS                  |
 
-## Fluxo do Sistema
+## System Flow
 
 ```
-Entrada:
-  candidate_profile.yaml + descrição da vaga + template LaTeX
+Input:
+  candidate_profile.yaml + job description + LaTeX template
     ↓
-Ingestão (uma vez):
+Ingestion (once):
   knowledge_base/ → SimpleDirectoryReader → SentenceSplitter → Embeddings → ChromaDB
     ↓
-Retrieval (por vaga):
-  Query da vaga → Hybrid Search (Vector + BM25) → Top-5 chunks relevantes
+Retrieval (per job):
+  Job query → Hybrid Search (Vector + BM25) → Top-5 relevant chunks
     ↓
-Geração:
-  Prompt (candidato + vaga + chunks + template) → Gemini → Conteúdo estruturado
+Generation:
+  Prompt (candidate + job + chunks + template) → Gemini → Structured content
     ↓
-Formatação:
-  Jinja2 → arquivo .tex → pdflatex → PDF final
+Formatting:
+  Jinja2 → .tex file → pdflatex → Final PDF
     ↓
-Saída:
-  output/curriculo_<empresa>_<data>.pdf
+Output:
+  output/resume_<company>_<date>.pdf
 ```
 
-## Estrutura de Diretórios
+## Directory Structure
 
 ```
 gerador_curriculos/
-├── .agents/                       # Customizações AGY
+├── .agents/                       # AGY customizations
 ├── src/
 │   ├── config.py
-│   ├── data/                      # Schemas Pydantic
+│   ├── data/                      # Pydantic schemas
 │   ├── ingestion/                 # Loader + Indexer
 │   ├── retrieval/                 # Hybrid Retriever
 │   ├── generation/                # Prompts + Chain + Formatter
-│   ├── knowledge_base/            # Docs de conhecimento (.md)
+│   ├── knowledge_base/            # Knowledge docs (.md)
 │   └── app.py                     # Gradio
-├── templates/                     # Template LaTeX
-├── data/                          # Perfil do candidato + vagas
+├── templates/                     # LaTeX template
+├── data/                          # Candidate profile + job postings
 ├── tests/
 ├── notebooks/
 ├── docs/
-└── output/                        # PDFs gerados
+└── output/                        # Generated PDFs
 ```
 
-## Fases de Desenvolvimento
+## Development Phases
 
-1. **Fundação e Dados** — Setup, schemas, knowledge base
-2. **RAG Core** — Ingestão, indexação, retrieval
-3. **Geração e Formatação** — Prompts, chain, LaTeX → PDF
+1. **Foundation & Data** — Setup, schemas, knowledge base
+2. **RAG Core** — Ingestion, indexing, retrieval
+3. **Generation & Formatting** — Prompts, chain, LaTeX → PDF
 4. **Interface** — Gradio app
-5. **Avaliação** — RAGAS, tuning
-6. **Portfólio e Deploy** — README, Docker, HuggingFace
+5. **Evaluation** — RAGAS, tuning
+6. **Portfolio & Deploy** — README, Docker, HuggingFace
 
-Para detalhes de cada fase, consultar o plano completo do projeto.
+For details on each phase, refer to the full project plan.
