@@ -295,5 +295,39 @@
   - Lazy evaluator construction: avoids LLM initialisation during test collection when evaluators are patched via mocks.
 - **Model used:** Claude Sonnet (Thinking) (execution)
 - **Challenges:** RAGAS 0.4.3 incompatibility with langchain-community >= 0.3.x; resolved by switching to LlamaIndex evaluators (see ADR-009).
-- **Next steps:** Task 5.2 — Synthetic evaluation dataset with real internship job postings (`data/eval/`) and Task 5.3 — metrics report generation.
+- **Next steps:** Task 5.2 — Evaluation Dataset & Baseline Benchmark Execution.
+
+## 2026-09-26 — Task 5.2: Evaluation Dataset & Baseline Benchmark
+- **What was done:**
+  - Created `data/eval/evaluation_dataset.yaml` with 5 realistic tech internship benchmark test cases covering distinct industry tracks:
+    1. GenAI / RAG Engineering (`NeuralWave Labs`)
+    2. Data Science & Machine Learning (`FinMetrics Analytics`)
+    3. Backend Python Development (`CloudScale Software`)
+    4. Core Software Engineering / Algorithms (`Apex Global Tech`)
+    5. Data Engineering & Pipelines (`OmniData Solutions`)
+  - Created `src/data/evaluation.py` implementing Pydantic v2 schemas: `EvaluationTestCase` (with `to_job_posting()`) and `EvaluationDataset` (with `from_yaml()` and `get_by_id()`), exported through `src/data/__init__.py`.
+  - Implemented `src/evaluation/benchmark.py`:
+    - `format_candidate_facts()`: serializes the complete candidate profile into factual markdown truth.
+    - `format_resume_as_text()`: comprehensive textual rendering of `TailoredResume` for answer relevancy & context precision evaluation.
+    - `format_resume_claims()`: isolates historical credentials (education, experiences, projects, skills) from job application metadata, preventing false-positive hallucination penalties on target company names.
+    - `EvaluationBenchmark`: end-to-end orchestrator connecting retrieval, generation, sample routing, evaluation scoring, and report persistence.
+    - CLI entrypoint supporting filtering, custom top-k, and custom output path (`python -m src.evaluation.benchmark`).
+  - Strengthened pipeline resilience:
+    - Updated default embedding model to `models/gemini-embedding-001` and LLM to `models/gemini-flash-lite-latest` in `src/config.py` and `.env.example`, matching current Google AI Studio free tier quotas (1,500 requests/day).
+    - Added exponential backoff retry on 429 rate limit errors in `ResumeGenerationChain` and `EvaluationRunner`.
+    - Added defensive normalization in `parse_tailored_resume` for LLM structure variations (header vs contact, period mapping, skills dict/list, certifications formatting).
+    - Clarified JSON schema structure in `src/generation/prompts.py` using explicit template examples.
+  - Added unit test suite `tests/test_evaluation_dataset.py` with 9 tests covering dataset loading, test case conversion, facts and claims formatting, and mock benchmark execution. Total project test suite: **105/105 tests passing**.
+  - Executed full baseline benchmark on all 5 real test cases using Google Gemini in production mode. Generated complete analytical report at `docs/evaluation.md`:
+    - **Faithfulness:** `1.000` (100% across all 5 test cases — Zero Hallucination!)
+    - **Answer Relevancy:** `1.000` (100% across all 5 test cases)
+    - **Context Precision:** `0.725` (GenAI: 1.000, Backend: 0.875, Data Science: 0.750, SWE: 0.625, Data Eng: 0.375)
+    - **Aggregate Score:** `0.898` (89.8% geometric mean quality)
+- **Decisions made:**
+  - Evaluated factual claims (`format_resume_claims`) rather than entire raw prompt text for faithfulness to avoid penalizing the candidate for mentioning target company names in application headers.
+  - Standardized on `models/gemini-flash-lite-latest` as the default free-tier LLM for fast, generous 1,500 requests/day capacity without incurring charges.
+- **Model used:** Gemini Flash (execution)
+- **Challenges:** Resolved rate limit quota handling with exponential backoff; mapped Google API model deprecations gracefully; ensured Pydantic v2 schema alignment between LLM JSON payloads and Jinja2 LaTeX structures.
+- **Next steps:** Task 5.3 — Qualitative analysis & parameter/prompt tuning (addressing lower context precision in tracks with less dedicated knowledge base content).
+
 

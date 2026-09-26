@@ -85,36 +85,78 @@ Below is the candidate's complete, verified background. You MUST draw all resume
 {candidate_json}
 ```
 
-## Generation Instructions
-1. **Target Information**:
-   - target_job_title: "{job.title}"
-   - target_company: "{job.company}"
+## Generation Instructions & Required JSON Schema
+Your output MUST be a single, valid JSON object matching the following structure:
 
-2. **Header**:
-   - Transfer exact contact details from candidate profile.
+```json
+{{
+  "target_job_title": "{job.title}",
+  "target_company": "{job.company}",
+  "header": {{
+    "full_name": "Full Name from candidate profile",
+    "email": "Email",
+    "phone": "Phone",
+    "location": "Location",
+    "linkedin_url": "LinkedIn or null",
+    "github_url": "GitHub or null"
+  }},
+  "objective_or_summary": "Concise 2-3 sentence tailored objective specifically mentioning {job.company}.",
+  "education": [
+    {{
+      "institution": "University name",
+      "degree": "Degree name",
+      "period": "MM/YYYY - MM/YYYY",
+      "location": "City/State or null",
+      "highlights": ["Honors, GPA, or relevant courses"]
+    }}
+  ],
+  "experiences": [
+    {{
+      "title": "Role title",
+      "organization": "Company or Lab name",
+      "period": "MM/YYYY - Present",
+      "location": "City/State or Remote",
+      "bullets": [
+        "Accomplished [X] as measured by [Y], by doing [Z] using active verbs."
+      ],
+      "technologies": ["Relevant tech from profile"]
+    }}
+  ],
+  "projects": [
+    {{
+      "name": "Project name from profile",
+      "technologies": ["Tech from profile"],
+      "url": "URL or null",
+      "bullets": [
+        "Action bullets demonstrating implementation and quantitative impact."
+      ]
+    }}
+  ],
+  "skills": [
+    {{
+      "category_name": "Programming Languages",
+      "skills": ["Python", "SQL"]
+    }},
+    {{
+      "category_name": "Frameworks & Libraries",
+      "skills": ["LlamaIndex", "FastAPI"]
+    }}
+  ],
+  "languages": [
+    {{
+      "language": "Portuguese",
+      "proficiency": "Native"
+    }}
+  ],
+  "certifications": [
+    "Certification Name (Issuer, MM/YYYY)"
+  ]
+}}
+```
 
-3. **Professional Objective**:
-   - Craft a concise 2-3 sentence objective specifically mentioning the role at {job.company}, highlighting the candidate's verified strengths aligned to the position.
-
-4. **Education**:
-   - Include current and relevant degree programs. Highlight coursework and academic honors matching the job requirements.
-
-5. **Experience**:
-   - Select relevant professional, research, or extracurricular roles.
-   - Rewrite bullet points applying the Google XYZ formula and strong action verbs based on real facts.
-   - Include the explicit technology tags used in each role.
-
-6. **Projects**:
-   - Feature 2-3 technical projects with the highest relevance to the requested tech stack.
-   - Focus bullet points on technical implementation, challenges solved, and quantitative impact.
-
-7. **Skills**:
-   - Organize verified technical skills into clean, logical categories (e.g., Programming Languages, Frameworks & Libraries, Databases, Tools & Platforms).
-   - Place technologies requested by the job at the forefront of each category.
-
-8. **Languages & Certifications**:
-   - Include verified language proficiencies and relevant certifications.
-
-Output the final result as a single valid JSON object strictly matching the TailoredResume schema."""
+Important rules:
+- NEVER invent experiences or qualifications not in the Candidate Verified Profile.
+- Use exact keys: "header" (not "contact"), "objective_or_summary", "period" (not start/end dates), and "skills" as a list of categorized skill objects.
+- Output ONLY the JSON object strictly matching the TailoredResume schema without markdown fences or additional text."""
 
     return prompt

@@ -35,7 +35,7 @@ class Settings(BaseSettings):
 
     # LLM Settings
     gemini_model: str = Field(
-        default="gemini-2.5-flash",
+        default="models/gemini-flash-lite-latest",
         description="Gemini model identifier for text generation.",
     )
     gemini_temperature: float = Field(
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
 
     # Embedding Settings
     gemini_embedding_model: str = Field(
-        default="models/text-embedding-004",
+        default="models/gemini-embedding-001",
         description="Gemini model identifier for text embeddings.",
     )
 

@@ -59,6 +59,8 @@ def get_embedding_model(
 
     settings = get_settings()
     resolved_model = model_name or settings.gemini_embedding_model
+    if "text-embedding-004" in resolved_model:
+        resolved_model = "models/gemini-embedding-001"
     resolved_key = api_key or settings.google_api_key
 
     return GeminiEmbedding(

@@ -548,8 +548,15 @@ AI-powered, ATS-optimized, 1-page resume generator combining your verified backg
 
                 with gr.Accordion("⚙️ Advanced RAG & LLM Settings", open=False):
                     model_dropdown = gr.Dropdown(
-                        choices=["gemini-2.5-flash", "gemini-2.5-pro"],
+                        choices=[
+                            "models/gemini-flash-lite-latest",
+                            "models/gemini-3.8-flash",
+                            "gemini-2.5-flash",
+                            "gemini-2.5-pro",
+                            "models/gemini-flash-latest",
+                        ],
                         value=settings.gemini_model,
+                        allow_custom_value=True,
                         label="Gemini LLM Model",
                     )
                     temp_slider = gr.Slider(

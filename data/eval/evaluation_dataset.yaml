@@ -1,0 +1,204 @@
+# ==============================================================================
+# EVALUATION DATASET — TECH INTERNSHIP JOB POSTINGS
+# ==============================================================================
+# Curated benchmark dataset of realistic internship positions across 5 tracks:
+# 1. GenAI / RAG / NLP Engineering
+# 2. Data Science / Machine Learning
+# 3. Backend Python Engineering
+# 4. Core Software Engineering (Algorithms & Systems)
+# 5. Data Engineering & Pipelines
+# ==============================================================================
+
+test_cases:
+  - id: "genai_rag_intern"
+    title: "Estágio em Inteligência Artificial & Engenharia de IA (GenAI / RAG)"
+    company: "NeuralWave Labs"
+    location: "São Paulo, SP"
+    work_model: "Remote"
+    target_track: "AI & GenAI"
+    technologies:
+      - "Python"
+      - "LlamaIndex"
+      - "Google Gemini"
+      - "ChromaDB"
+      - "PyTorch"
+      - "Hugging Face"
+      - "Git"
+    expected_focus: "Destaque para projetos e pesquisas com LLMs, RAG híbrido, vetorização de documentos e frameworks LlamaIndex/PyTorch."
+    ground_truth_criteria:
+      - "Deve priorizar o projeto 'Gerador de Currículos com RAG' e a Iniciação Científica em IA e NLP."
+      - "NÃO deve inventar experiência profissional prévia como Engenheiro Sênior ou em empresas não listadas."
+      - "Deve destacar proficiência em Python, LlamaIndex e ChromaDB."
+    description: >
+      A NeuralWave Labs é uma startup de ponta focada em soluções corporativas com Inteligência Artificial Generativa.
+      Buscamos um(a) Estagiário(a) em Engenharia de IA apaixonado por modelos de linguagem, busca semântica e sistemas RAG.
+      
+      Responsabilidades:
+      - Auxiliar no desenvolvimento e refinamento de pipelines RAG (Retrieval-Augmented Generation) com LlamaIndex e LangChain.
+      - Implementar estratégias de busca vetorial e híbrida utilizando ChromaDB e modelos de embeddings modernos.
+      - Conduzir testes e benchmark de fidelidade (faithfulness) e precisão de recuperação em LLMs (Gemini, Claude, GPT).
+      - Integrar APIs de inteligência artificial com microsserviços em Python.
+      
+      Requisitos obrigatórios:
+      - Cursando Engenharia de Computação, Ciência da Computação ou áreas afins (com previsão de formatura a partir de 2026).
+      - Forte domínio da linguagem Python e bibliotecas essenciais para manipulação de dados.
+      - Conhecimento prático ou acadêmico em conceitos de NLP, embeddings e LLMs.
+      - Familiaridade com Git e ambiente Linux.
+      
+      Desejáveis:
+      - Experiência prévia em projetos acadêmicos ou pessoais com LlamaIndex, LangChain ou Hugging Face.
+      - Conhecimentos em métricas de avaliação RAG (RAGAS) e bancos vetoriais.
+
+  - id: "data_science_ml_intern"
+    title: "Estágio em Ciência de Dados e Machine Learning"
+    company: "FinMetrics Analytics"
+    location: "São Paulo, SP"
+    work_model: "Hybrid"
+    target_track: "Data Science"
+    technologies:
+      - "Python"
+      - "Scikit-Learn"
+      - "Pandas"
+      - "NumPy"
+      - "PyTorch"
+      - "SQL"
+      - "Git"
+    expected_focus: "Foco em manipulação analítica com Pandas/NumPy, projeto do classificador semântico financeiro e fundamentos estatísticos."
+    ground_truth_criteria:
+      - "Deve destacar o projeto 'Classificador Semântico de Notícias Financeiras' (50.000 notícias, 88% de acurácia com BERT e Scikit-Learn)."
+      - "Deve enfatizar sólida formação matemática (Cálculo, Álgebra Linear) e Iniciação Científica."
+      - "NÃO deve fabricar proficiência em ferramentas não listadas como R ou SAS."
+    description: >
+      A FinMetrics Analytics desenvolve inteligência quantitativa e preditiva para o mercado financeiro e de crédito.
+      Estamos contratando Estagiário(a) em Ciência de Dados para compor nosso time de inteligência de dados.
+      
+      Responsabilidades:
+      - Extrair, higienizar e estruturar bases de dados financeiras e textuais volumosas com Pandas e SQL.
+      - Desenvolver modelos preditivos e de classificação usando Scikit-Learn e técnicas de machine learning supervisionado.
+      - Realizar validação cruzada, ajuste de hiperparâmetros e análise de curvas ROC-AUC, F1-Score e matrizes de confusão.
+      - Apoiar na criação de relatórios analíticos e visualização de métricas de impacto.
+      
+      Requisitos obrigatórios:
+      - Graduação em andamento em Engenharia, Computação, Estatística ou áreas correlatas.
+      - Excelente proficiência em Python voltado a análise de dados (Pandas, NumPy, Matplotlib/Seaborn).
+      - Compreensão dos fundamentos de aprendizado de máquina supervisionado e métricas estatísticas.
+      - Bons conhecimentos em consultas SQL relacionais.
+      
+      Desejáveis:
+      - Experiência prática em modelos de classificação textual ou séries temporais.
+      - Participação em maratonas de programação ou olimpíadas acadêmicas.
+
+  - id: "backend_python_intern"
+    title: "Estágio em Desenvolvimento Backend Python"
+    company: "CloudScale Software"
+    location: "Belo Horizonte, MG"
+    work_model: "Hybrid"
+    target_track: "Backend Engineering"
+    technologies:
+      - "Python"
+      - "FastAPI"
+      - "PostgreSQL"
+      - "Docker"
+      - "Git"
+      - "Linux"
+    expected_focus: "Destaque para atuação na Empresa Júnior com FastAPI, PostgreSQL, Docker e construção de APIs RESTful."
+    ground_truth_criteria:
+      - "Deve priorizar a experiência como Membro Desenvolvedor na Empresa Júnior de Computação."
+      - "Deve citar FastAPI, PostgreSQL, Docker e testes automatizados como diferenciais comprovados."
+      - "NÃO deve inventar experiência corporativa em Java, C# ou Kubernetes."
+    description: >
+      A CloudScale Software cria plataformas SaaS escaláveis em nuvem para logística e e-commerce de alto tráfego.
+      Buscamos um(a) Estagiário(a) Backend com foco em Python para acelerar a evolução das nossas APIs de microsserviços.
+      
+      Responsabilidades:
+      - Construir e documentar endpoints RESTful de alta performance utilizando FastAPI.
+      - Modelar esquemas relacionais, criar migrações e otimizar queries em bancos de dados PostgreSQL.
+      - Escrever testes unitários e de integração garantindo robustez e cobertura de código.
+      - Empacotar aplicações em contêineres Docker e configurar rotinas básicas de CI/CD via GitHub Actions.
+      
+      Requisitos obrigatórios:
+      - Cursando Engenharia de Computação, Análise de Sistemas ou Ciência da Computação.
+      - Domínio da sintaxe moderna do Python 3 (type hints, assincronismo, orientacão a objetos).
+      - Experiência prática com frameworks web (FastAPI, Flask ou Django).
+      - Conhecimentos sólidos de modelagem e manipulação de banco de dados relacional (SQL / PostgreSQL).
+      - Uso de Git para versionamento de código em fluxo de branches e PRs.
+      
+      Desejáveis:
+      - Vivência em empresas juniores, estágios ou projetos colaborativos no GitHub.
+      - Noções de Docker, Linux e metodologias ágeis (Scrum).
+
+  - id: "swe_algorithms_intern"
+    title: "Estágio em Engenharia de Software (Fundamentals & Systems)"
+    company: "Apex Global Tech"
+    location: "Campinas, SP"
+    work_model: "On-site"
+    target_track: "Core Software Engineering"
+    technologies:
+      - "Python"
+      - "C/C++"
+      - "Estruturas de Dados"
+      - "Algoritmos"
+      - "Git"
+      - "Linux"
+    expected_focus: "Ênfase em algoritmos, maratonas de programação, excelência acadêmica na UNIFEI/ENIB e fundamentos de C/C++ e Python."
+    ground_truth_criteria:
+      - "Deve destacar a participação na Maratona SBC de Programação (2023 e 2024)."
+      - "Deve valorizar o coeficiente de rendimento (8.5 UNIFEI / 17 ENIB) e monitoria em Introdução à Ciência da Computação."
+      - "Deve ressaltar competência bilíngue (Português nativo, Inglês C1)."
+    description: >
+      A Apex Global Tech desenvolve tecnologia de missão crítica, compiladores e engines de alta performance.
+      Procuramos talentos com sólidas bases em computação para nosso programa de estágio em Engenharia de Software.
+      
+      Responsabilidades:
+      - Projetar soluções algorítmicas eficientes com análise de complexidade temporal e espacial (Big-O).
+      - Implementar módulos de software utilizando C/C++ e Python com foco em manutenibilidade e qualidade.
+      - Analisar gargalos de performance e depurar fluxos concorrentes em ambientes Linux.
+      - Colaborar com engenheiros seniores em revisões de código rigorosas e testes automatizados.
+      
+      Requisitos obrigatórios:
+      - Estudante de Engenharia de Computação ou Ciência da Computação.
+      - Excelente entendimento de Estruturas de Dados clássicas (árvores, grafos, hash maps, heaps) e Algoritmos.
+      - Conhecimento e prática de programação em C/C++ ou Python.
+      - Inglês avançado para comunicação técnica e documentação.
+      
+      Desejáveis:
+      - Participação comprovada em maratonas de programação (SBC, ICPC, OBI, Codeforces).
+      - Monitoria acadêmica ou premiações em olimpíadas de ciências/matemática.
+
+  - id: "data_engineering_intern"
+    title: "Estágio em Engenharia de Dados"
+    company: "OmniData Solutions"
+    location: "Curitiba, PR"
+    work_model: "Remote"
+    target_track: "Data Engineering"
+    technologies:
+      - "Python"
+      - "SQL"
+      - "PostgreSQL"
+      - "Docker"
+      - "Linux"
+      - "Git"
+    expected_focus: "Foco em pipelines de dados, web scraping no projeto de finanças, banco PostgreSQL e conteinerização."
+    ground_truth_criteria:
+      - "Deve destacar a coleta e tratamento de 50.000 notícias via web scraping automatizado."
+      - "Deve evidenciar vivência prática com PostgreSQL e Docker na Empresa Júnior."
+      - "NÃO deve citar Spark ou Kafka como experiências reais (não estão no perfil)."
+    description: >
+      A OmniData Solutions constrói infraestrutura moderna de dados e analytics para empresas globais.
+      Estamos em busca de um(a) Estagiário(a) em Engenharia de Dados motivado para compor nossa equipe de Data Platform.
+      
+      Responsabilidades:
+      - Desenvolver scripts em Python para ingestão de dados, web scraping e pipelines ETL de fontes públicas e privadas.
+      - Criar tabelas, índices e views otimizadas em PostgreSQL para sustentar cargas de trabalho analíticas.
+      - Monitorar a integridade, consistência e qualidade dos dados ao longo das etapas de transformação.
+      - Automatizar rotinas de carga de dados utilizando Docker e agendadores de tarefas.
+      
+      Requisitos obrigatórios:
+      - Cursando graduação na área de Tecnologia da Informação ou Engenharia.
+      - Boa habilidade em Python para automação e manipulação de arquivos estruturados (JSON, CSV, Parquet).
+      - Domínio da linguagem SQL (DML, DDL, joins complexos, window functions).
+      - Noções de bancos de dados relacionais e modelagem tabular.
+      
+      Desejáveis:
+      - Experiência em projetos de web scraping ou ingestão de APIs.
+      - Conhecimento prático de Docker e comandos essenciais de terminal Linux.

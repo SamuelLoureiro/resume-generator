@@ -18,6 +18,12 @@ Note:
     scoring convention.
 """
 
+from src.evaluation.benchmark import (
+    EvaluationBenchmark,
+    format_candidate_facts,
+    format_resume_as_text,
+    format_resume_claims,
+)
 from src.evaluation.metrics import EvaluationScores, build_evaluators, result_to_score
 from src.evaluation.runner import (
     EvaluationRunResult,
@@ -31,7 +37,11 @@ __all__ = [
     "EvaluationRunResult",
     "EvaluationRunner",
     "EvaluationSample",
+    "EvaluationBenchmark",
     "build_evaluators",
     "format_evaluation_report",
+    "format_candidate_facts",
+    "format_resume_as_text",
+    "format_resume_claims",
     "result_to_score",
 ]

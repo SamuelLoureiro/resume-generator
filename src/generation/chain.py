@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from typing import Any
 
 from llama_index.core.llms import LLM, ChatMessage, MessageRole
@@ -67,6 +68,59 @@ def parse_tailored_resume(raw_text: str) -> TailoredResume:
     json_str = extract_json_payload(raw_text)
     try:
         data = json.loads(json_str)
+        if isinstance(data, dict):
+            # 1. Normalize header
+            if "header" not in data and "contact" in data:
+                data["header"] = data.pop("contact")
+
+            # 2. Normalize objective
+            if "objective_or_summary" not in data:
+                for k in ["professional_objective", "objective", "summary"]:
+                    if k in data:
+                        data["objective_or_summary"] = data.pop(k)
+                        break
+
+            # 3. Normalize education period
+            if "education" in data and isinstance(data["education"], list):
+                for edu in data["education"]:
+                    if isinstance(edu, dict) and "period" not in edu:
+                        start = edu.get("start_date", "")
+                        end = edu.get("end_date", "")
+                        edu["period"] = f"{start} - {end}".strip(" -") or "Present"
+
+            # 4. Normalize experience period
+            if "experiences" in data and isinstance(data["experiences"], list):
+                for exp in data["experiences"]:
+                    if isinstance(exp, dict) and "period" not in exp:
+                        start = exp.get("start_date", "")
+                        end = exp.get("end_date", "")
+                        exp["period"] = f"{start} - {end}".strip(" -") or "Present"
+
+            # 5. Normalize skills
+            if "skills" in data and isinstance(data["skills"], dict):
+                skills_list = []
+                for cat_key, skill_items in data["skills"].items():
+                    cat_name = cat_key.replace("_", " ").title()
+                    if isinstance(skill_items, list):
+                        skills_list.append({"category_name": cat_name, "skills": [str(s) for s in skill_items]})
+                data["skills"] = skills_list
+            elif "skills_categories" in data and "skills" not in data:
+                data["skills"] = data.pop("skills_categories")
+
+            # 6. Normalize certifications
+            if "certifications" in data and isinstance(data["certifications"], list):
+                cert_strings = []
+                for cert in data["certifications"]:
+                    if isinstance(cert, dict):
+                        name = cert.get("name", "")
+                        issuer = cert.get("issuer", "")
+                        date = cert.get("issue_date", "")
+                        detail = f"{name} ({issuer}, {date})" if issuer and date else (f"{name} ({issuer})" if issuer else name)
+                        cert_strings.append(detail)
+                    elif isinstance(cert, str):
+                        cert_strings.append(cert)
+                data["certifications"] = cert_strings
+
         return TailoredResume.model_validate(data)
     except Exception as e:
         logger.error(
@@ -94,6 +148,10 @@ def get_gemini_llm(
     """
     settings = get_settings()
     resolved_model = model_name or settings.gemini_model
+    if any(m in resolved_model for m in ["gemini-2.5-flash", "gemini-3.8-flash"]):
+        resolved_model = "models/gemini-flash-lite-latest"
+    elif not resolved_model.startswith("models/"):
+        resolved_model = f"models/{resolved_model}"
     resolved_key = api_key or settings.google_api_key
     resolved_temp = temperature if temperature is not None else settings.gemini_temperature
 
@@ -154,8 +212,28 @@ class ResumeGenerationChain:
             job.company,
         )
 
-        response = self.llm.chat(messages)
-        response_text = response.message.content or ""
+        max_retries = 3
+        backoff_seconds = 7.0
+        response_text = ""
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = self.llm.chat(messages)
+                response_text = response.message.content or ""
+                break
+            except Exception as exc:
+                err_msg = str(exc).lower()
+                if ("429" in err_msg or "resource_exhausted" in err_msg or "quota" in err_msg) and attempt < max_retries:
+                    logger.warning(
+                        "Rate limit exceeded (attempt %d/%d). Sleeping %.1fs before retrying...",
+                        attempt,
+                        max_retries,
+                        backoff_seconds,
+                    )
+                    time.sleep(backoff_seconds)
+                    backoff_seconds *= 1.5
+                else:
+                    raise
 
         logger.info("LLM response received (%d chars). Parsing structure...", len(response_text))
         return parse_tailored_resume(response_text)

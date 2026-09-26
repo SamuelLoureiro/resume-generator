@@ -32,8 +32,9 @@ from __future__ import annotations
 
 import logging
 import math
+import time
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 from llama_index.core.llms import LLM
 
@@ -74,10 +75,15 @@ class EvaluationSample:
     candidate_facts: str
     job_title: str = ""
     company: str = ""
+    faithfulness_claim: str = ""
 
     # ------------------------------------------------------------------
     # Context routing helpers
     # ------------------------------------------------------------------
+
+    def faithfulness_response(self) -> str:
+        """Return response text containing the factual claims for faithfulness."""
+        return self.faithfulness_claim if self.faithfulness_claim else self.generated_response
 
     def faithfulness_contexts(self) -> list[str]:
         """Return reference contexts for faithfulness evaluation.
@@ -172,6 +178,37 @@ class EvaluationRunner:
             self._evaluators = build_evaluators(self._llm)
         return self._evaluators
 
+    def _evaluate_with_backoff(
+        self,
+        evaluator: Any,
+        query: str,
+        response: str,
+        contexts: list[str],
+        max_retries: int = 3,
+        initial_backoff: float = 7.0,
+    ) -> Any:
+        """Call evaluator with exponential backoff on 429 rate limit errors."""
+        backoff = initial_backoff
+        for attempt in range(1, max_retries + 1):
+            try:
+                return evaluator.evaluate(query=query, response=response, contexts=contexts)
+            except Exception as exc:
+                err_msg = str(exc).lower()
+                if (
+                    ("429" in err_msg or "resource_exhausted" in err_msg or "quota" in err_msg)
+                    and attempt < max_retries
+                ):
+                    logger.warning(
+                        "Rate limit hit in evaluator (attempt %d/%d). Sleeping %.1fs...",
+                        attempt,
+                        max_retries,
+                        backoff,
+                    )
+                    time.sleep(backoff)
+                    backoff *= 1.5
+                else:
+                    raise
+
     def evaluate_sample(self, sample: EvaluationSample) -> EvaluationRunResult:
         """Run all three metrics on a single ``EvaluationSample``.
 
@@ -194,21 +231,26 @@ class EvaluationRunner:
 
         try:
             logger.info("Evaluating faithfulness for sample %s", tag)
-            faith_result = evaluators["faithfulness"].evaluate(
-                query=sample.query,
-                response=sample.generated_response,
+            faith_result = self._evaluate_with_backoff(
+                evaluators["faithfulness"],
+                query=None,
+                response=sample.faithfulness_response(),
                 contexts=sample.faithfulness_contexts(),
             )
+            time.sleep(1.5)
 
             logger.info("Evaluating answer relevancy for sample %s", tag)
-            relevancy_result = evaluators["answer_relevancy"].evaluate(
+            relevancy_result = self._evaluate_with_backoff(
+                evaluators["answer_relevancy"],
                 query=sample.query,
                 response=sample.generated_response,
                 contexts=sample.relevancy_contexts(),
             )
+            time.sleep(1.5)
 
             logger.info("Evaluating context precision for sample %s", tag)
-            precision_result = evaluators["context_precision"].evaluate(
+            precision_result = self._evaluate_with_backoff(
+                evaluators["context_precision"],
                 query=sample.query,
                 response=sample.generated_response,
                 contexts=sample.precision_contexts(),
@@ -342,6 +384,24 @@ def format_evaluation_report(results: list[EvaluationRunResult]) -> str:
                 f"- **{result.sample.job_title} @ {result.sample.company}**: "
                 f"`{result.error}`"
             )
+
+    # Qualitative feedback section
+    has_feedback = any(r.scores.feedback for r in successful)
+    if has_feedback:
+        lines += [
+            "",
+            "## 📝 Qualitative Evaluator Feedback",
+            "",
+        ]
+        for idx, result in enumerate(successful, start=1):
+            fb = result.scores.feedback
+            title = result.sample.job_title or "Sample"
+            comp = result.sample.company or "Company"
+            lines.append(f"### {idx}. {title} @ {comp}")
+            for metric_name, feedback_text in fb.items():
+                if feedback_text:
+                    lines.append(f"- **{metric_name.replace('_', ' ').title()}:** {feedback_text.strip()}")
+            lines.append("")
 
     # Metric definitions.
     lines += [
