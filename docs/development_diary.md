@@ -781,7 +781,37 @@
   - Proposed candidate data changes in `docs/proposals/ADR-025_data_proposals.md` rather than editing protected files.
 - **Model used:** Gemini 3.8 Flash (High), Tectonic 0.15.0.
 - **Challenges:** Aligning skills taxonomy category names across multilingual tests without breaking existing test assertions; resolved by matching `CATEGORY_NAMES` to standard canonical test keys.
-- **Next steps:** Human review of `docs/proposals/ADR-025_data_proposals.md` to apply candidate profile and atomic fact updates, followed by Phase B (prompt and verifier heuristics for fact fusion and vocabulary leaks).
+- **Next steps:** Continue to Phase B (verification defect checks B1–B5) and Phase C (prompt constraints and coursework selection).
+
+## 2026-10-12 — ADR-025: Phases B & C — Verification Defect Checks (B1–B5), Prompt Constraints, Coursework Selection, and Experiment E04
+- **What was done:**
+  - Implemented Phase B Verification Defect Checks (`src/verification/defect_checks.py`):
+    - **B1 (`check_summary_lint`):** Scans free text for forbidden meta-words (`"verified"`, `"validated by"`, `"grounded"`, `"fact"`, `"ceiling"`, `"pipeline"`, `"LLM"`, `"RAG-verified"`), exempting profile tech allowlist. Integrated surgical deletion repair in `repair_resume()`.
+    - **B2 (`check_job_phrase_echo`):** Extracts $n \ge 3$ n-grams shared with job description/requirements not grounded in candidate profile/facts. Exempts allowlisted skills and application target role/company metadata.
+    - **B3 (`check_fact_fusion`):** Detects multi-fact conflation in a single sentence or bullet via top-2 matching threshold and entity marker co-occurrence (e.g. Asimov leadership + awards). Added golden regression tests.
+    - **B4 (`SUMMARY_CLAIM_JUDGE`):** Bumped claim judge prompt to `claim_judge_v2.1` and updated `format_resume_bullets_for_judge()` to evaluate summary sentences sentence-by-sentence strictly against ONE matched candidate fact.
+    - **B5 (`check_summary_verbs`):** Evaluates all candidate-attributed verbs in the summary against the matched fact ceiling using the M2 verb ladder.
+  - Implemented Phase C Prompt Constraints & Deterministic Selection:
+    - Bumped generation prompt version to `v1_gen_v1.1` and feedback prompt version to `v1_feedback_v1.1` in `src/generation/prompts.py`.
+    - Added explicit prompt mandates against sentence fact fusion, verbatim job description copying, and pipeline meta-vocabulary.
+    - Implemented deterministic coursework selection `select_relevant_coursework()` in `src/verification/text_utils.py` filtering generic filler words (`development`, `engineering`) and applying semantic phrase bridges (`operating system` -> `rtos`, `signal processing` -> `dsp`) to match target job keywords for a single-page budget.
+    - Added `rank_facts_for_job()` on `CandidateFacts` with track and priority weighting.
+  - Defect-Injection Harness Expansion (`src/evaluation/injection.py`):
+    - Added `meta_word`, `job_phrase_echo`, `fused_facts` to `DefectClass` and `generate_corrupted_dataset`.
+    - Added unit tests in `tests/test_evaluation_injection.py` asserting 100% deterministic detection (0 false positives on clean profiles).
+  - Documentation and Data Proposals:
+    - Authored `docs/proposals/ADR-025_data_proposals.md` covering Asimov awards split into `exp_asimov_member_of_month` and `exp_asimov_mobile_area_of_month`, schema addition for `subject` (candidate | team | department), TinyML metrics checklist, and track enum divergence report (`mobile`, `robotics` outside canonical 6 tracks).
+    - Authored `docs/experiments/E04_defect_fixes.md` with raw defect counts before/after across the 10 defects, leaving interpretation empty for the human.
+    - Expanded ADR-025 in `docs/decisions_log.md` covering Phases A, B, and C.
+    - Updated `docs/architecture.md` directory tree (ADR-001 to ADR-025, 420 offline tests, E04).
+  - Executed full test suite: **420/420 tests passing** offline in 54.42s (zero API calls).
+- **Decisions made:**
+  - Preserved frozen definition of `hard_pass` (headline metric) while surfacing Phase B defects on `VerificationReport.defects` and `defect_free`.
+  - Exempted job title and company name from B2 ungrounded phrase echoing to prevent false positives on standard application role targets.
+  - Strictly respected protected paths: zero modifications to `data/candidate_facts.yaml`, `data/candidate_profile.yaml`, or `docs/lessons.md`.
+- **Model used:** Gemini 3.8 Flash (High), Tectonic 0.15.0.
+- **Challenges:** Stemming interactions in text utils where `stem_token("rtos")` produces `"rto"`, causing substring false matches; resolved by generic token filtering and semantic phrase bridges.
+- **Next steps:** Human review of `docs/proposals/ADR-025_data_proposals.md` and human authoring of interpretation in `docs/experiments/E04_defect_fixes.md`.
 
 
 

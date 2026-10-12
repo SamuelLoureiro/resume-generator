@@ -81,13 +81,13 @@ gerador_curriculos/
 │   └── resume.tex.j2              # Multilingual Jinja2 LaTeX template
 ├── tests/
 │   ├── golden/                    # Golden set regression checks (Amazon SDE fixture)
-│   └── ...                        # 396 offline unit and integration tests
+│   └── ...                        # 420 offline unit and integration tests
 ├── docs/
 │   ├── architecture.md            # System architecture & stack
 │   ├── research_plan.md           # Research hypotheses and frozen decision protocol
-│   ├── decisions_log.md           # Architecture Decision Records (ADR-001 to ADR-023)
+│   ├── decisions_log.md           # Architecture Decision Records (ADR-001 to ADR-025)
 │   ├── development_diary.md       # Chronological development diary
 │   ├── lessons.md                 # Qualitative learnings
-│   └── experiments/               # Experiment reports (E00, E01, E02, E03)
+│   └── experiments/               # Experiment reports (E00, E01, E02, E03, E04)
 └── output/                        # Generated PDFs and TeX files
 ```

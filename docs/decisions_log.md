@@ -407,45 +407,50 @@
   - *Hardcoding automotive ECU instructions directly into prompts:* Rejected because it violates domain-agnostic prompting principles and degrades generalization across other engineering tracks.
   - *Mutating candidate strings inside Jinja2 template:* Rejected because it breaks two-way round-trip idempotence (`ResumeSchema <-> LaTeX`).
 
-### ADR-025: Phase A Deterministic Template Hardening, Typographic Escaping, and Skills Taxonomy Alignment
+### ADR-025: Elimination of Observed CV Defects (Inalfa Edge AI): Layout Hardening, Verification Defect Checks (B1–B5), and Prompt/Selection Constraints
 
 - **Status:** Accepted
 - **Date:** 2026-10-12
 - **Context:**
-  - Evaluation of the generated PDF for *Inalfa Roof Systems (AI Processing in Automotive ECUs, EN)* surfaced several layout, escaping, and content-organization defects:
-    1. Language proficiency rendered with double parentheses: `English (B2) ((TOEIC...))` due to uncoordinated string composition.
-    2. Regression from ADR-024: Long institution names (e.g., `École Nationale d'Ingénieurs de Brest (ENIB)`) in the inlined header exceeded the 531pt line width at 10pt A4, wrapping the date column onto a second line.
-    3. Straight quotes and apostrophes (`'`, `"`) were rendered directly into LaTeX output rather than typographic curved glyphs (`’`, `“`, `”`).
-    4. "ROS 2" was nondeterministically placed by the LLM into general machine learning / frameworks rather than a dedicated robotics / middleware category.
-    5. Additional defects identified in content generation (fact fusion between leadership and awards, pipeline vocabulary leak "verified", echoing job description phrases, dropped individual award, coursework relevance, missing TinyML metrics).
+  - Evaluation of the generated PDF for *Inalfa Roof Systems (AI Processing in Automotive ECUs, EN)* revealed 10 distinct defects:
+    1. Summary contained the meta-word "verified" (pipeline vocabulary leak).
+    2. Summary echoed job-posting phrases verbatim ("lightweight neural networks") as ungrounded claims.
+    3. FACT FUSION: one sentence merged `exp_asimov_leadership` (Mobile Area Manager, 5+ devs, founded Data Science dept) with `exp_asimov_awards` ("Area of the Month", which belonged to the Mobile team), falsely implying the award belonged to the Data Science department.
+    4. Language proficiency rendered with double parentheses: `English (B2) ((TOEIC...))`.
+    5. Layout regression from ADR-024: Long institution names in the inlined header exceeded line width at 10pt A4, wrapping the date column onto a second line.
+    6. Straight apostrophes/quotes (`'`, `"`) were rendered into LaTeX instead of typographic curved glyphs (`’`, `“`, `”`).
+    7. "ROS 2" was placed in generic frameworks rather than dedicated robotics / middleware category.
+    8. Coursework section listed irrelevant subjects (e.g. general business or web dev) displacing embedded/edge topics.
+    9. Individual recognition "Member of the Month" was dropped in favor of a single conflated area award.
+    10. TinyML hardware metrics (RAM, Flash, latency) were missing (underlying data gap).
 - **Decision:**
-  1. **Structured Language Line Rendering (`src/data/resume.py`, `templates/resume.tex.j2`):**
-     - Added `format_language_entry()` and structured fields (`level`, `certificate`, `formatted`) on `ResumeLanguage`.
-     - Standardized certificate presentation to exactly one pair of parentheses: `English (B2) (TOEIC)` instead of nested double parentheses.
-     - Updated `tex_parser.py` to extract and normalize structured language fields without parenthetical clutter.
-  2. **Non-Wrapping Date Column and ENIB Width Optimization (`templates/resume.tex.j2`, `src/data/resume.py`, `src/verification/tex_parser.py`):**
-     - Wrapped the date column macro in `\mbox{\small\color{subtext} ...}` across education and experience templates, preventing the date from line-breaking internally.
-     - Added a model validator on `ResumeEducation` to normalize long institution names (`"École Nationale d'Ingénieurs de Brest (ENIB)"` -> `"ENIB"`), saving ~200pt of horizontal space and guaranteeing single-line layout at 10pt A4.
-     - Extended `_HFILL_RE` regex in `src/verification/tex_parser.py` to transparently match `\mbox`-wrapped date blocks during round-trip parsing.
-  3. **Typographic Quote Escaping (`src/data/resume.py`):**
-     - Implemented `convert_typographic_quotes()` and hooked it into `escape_latex()` and `_deep_escape()`.
-     - Converts straight apostrophes (`'`) to curly apostrophes (`’`) and straight double quotes (`"..."`) to typographic quotation marks (`“...”`).
-     - Strictly preserves LaTeX accents (`\'e`), LaTeX control sequences, and URL link targets.
-  4. **Deterministic Skills Taxonomy (`src/data/skills_map.py`, `src/generation/chain.py`, `src/verification/repair.py`):**
-     - Implemented deterministic taxonomy mapping (`prog`, `embedded`, `robotics`, `frameworks`, `databases`, `tools`, `soft`) across English, Portuguese, and French.
-     - Explicitly mapped "ROS 2", "ROS", and "Micro-ROS" to `robotics` (`"Robotics & Middleware"`).
-     - Applied `reorganize_resume_skills()` in `parse_tailored_resume()`, `build_fallback_tailored_resume()`, and `repair_resume()`.
-     - Added `flag_unknown_skills()` to detect unmapped technical keywords.
-  5. **Explicit Scope of What Phase A Does NOT Cover:**
-     - Phase A is strictly deterministic and offline (no LLM prompts or API calls).
-     - Defects 1, 2, 3 (vocabulary leak "verified", job description echoing, fact fusion between `exp_asimov_leadership` and `exp_asimov_awards`) require Phase B prompt engineering and verifier heuristics.
-     - Defect 8 (coursework relevance ranking) requires Phase B matching algorithms.
-     - Defects 9 and 10 (dropped "Member of the Month", missing TinyML RAM/Flash/latency benchmark figures) are data gaps documented as concrete proposals in `docs/proposals/ADR-025_data_proposals.md` awaiting human review.
-- **Rationale:** Deterministic layout, typography, and categorization fixes guarantee robust, repeatable formatting without introducing stochastic LLM drift or brittle prompt instructions.
+  1. **Phase A: Deterministic Template Hardening & Escaping (No LLM):**
+     - **Structured Language Lines:** Implemented `format_language_entry()` and structured fields on `ResumeLanguage` (`level`, `certificate`, `formatted`). Standardized certificate display to exactly one pair of parentheses: `English (B2) (TOEIC)`.
+     - **Non-Wrapping Date Column:** Wrapped date column in `\mbox{\small\color{subtext} ...}` in `templates/resume.tex.j2` and added education institution normalization for ENIB (`"École Nationale d'Ingénieurs de Brest (ENIB)"` -> `"ENIB"`), guaranteeing single-line fit at 10pt A4. Updated round-trip parser `_HFILL_RE`.
+     - **Typographic Quotes:** Created `convert_typographic_quotes()` converting `'` -> `’` and `"..."` -> `“...”` while strictly preserving LaTeX accents (`\'e`), LaTeX command macros, and URLs. Hooked into `escape_latex()`.
+     - **Deterministic Skills Taxonomy:** Created `src/data/skills_map.py` deterministically categorizing skills across pt/en/fr. Explicitly routed `ROS 2` to `"Robotics & Middleware"`.
+  2. **Phase B: Verification Defect Checks (B1–B5) & Surgical Repair:**
+     - **B1 (SUMMARY_LINT):** Created `check_summary_lint()` scanning free text for forbidden pipeline words (`"verified"`, `"validated by"`, `"grounded"`, `"fact"`, `"ceiling"`, `"pipeline"`, `"LLM"`, `"RAG-verified"`), exempting profile tech allowlist. Integrated surgical deletion into `repair_resume()`.
+     - **B2 (JOB_PHRASE_ECHO):** Created `check_job_phrase_echo()` detecting n-grams ($n \ge 3$) shared between job description/requirements and candidate free text that are not present in candidate facts/profile, exempting multi-word skills and target role metadata (title and company).
+     - **B3 (FACT_FUSION):** Created `check_fact_fusion()` flagging sentences with top-2 fact matches above threshold from different facts or distinct entities/numbers. Added golden regression test ensuring leadership + awards in 1 sentence is flagged and in separate sentences passes.
+     - **B4 (SUMMARY_CLAIM_JUDGE):** Bumped claim judge to `claim_judge_v2.1`, extending M1d to evaluate summary sentences strictly against ONE matched fact at a time (`summary_i` matched to nearest fact ID).
+     - **B5 (SUMMARY_VERB):** Created `check_summary_verbs()` applying M2 verb ladder across all candidate-attributed verbs in the summary against the matched fact ceiling.
+     - **Issues Layer & Headline Metrics:** Normalized Phase B defects into `src/verification/issues.py` for feedback prompt guidance and repair surgery. Restored frozen `hard_pass` definition and added explicit `defect_free` property.
+  3. **Phase C: Generation Prompt Constraints & Deterministic Selection:**
+     - **Prompt Versioning:** Bumped generation prompt to `v1_gen_v1.1` and feedback prompt to `v1_feedback_v1.1`.
+     - **Mandates:** Added explicit negative constraints prohibiting multi-fact fusion in one sentence, verbatim job phrase copying, and pipeline vocabulary.
+     - **Deterministic Coursework Overlap Selection:** Implemented `select_relevant_coursework()` in `src/verification/text_utils.py` filtering out generic filler words (`development`, `engineering`) and using semantic phrase bridges (`operating system` -> `rtos`, `signal processing` -> `dsp`) to rank coursework matching job keywords for single-page budget.
+     - **Fact Priority & Track Weighting:** Implemented `rank_facts_for_job()` on `CandidateFacts` with priority weighting, track match bonus (+4.0), keyword overlap, and embedded/ai award boost (+5.0) ensuring priority-2 domain awards are retained.
+  4. **Explicit Scope of What ADR-025 Does NOT Cover:**
+     - Does NOT modify protected candidate files (`data/candidate_facts.yaml`, `data/candidate_profile.yaml`, `docs/lessons.md`).
+     - Defect 9 (splitting `exp_asimov_awards` into `exp_asimov_member_of_month` and `exp_asimov_mobile_area_of_month` with `subject` attribute) is proposed in `docs/proposals/ADR-025_data_proposals.md` for human application.
+     - Defect 10 (TinyML hardware benchmark numbers: RAM, Flash, latency) is an empirical measurement gap documented in `docs/proposals/ADR-025_data_proposals.md`; the agent did not invent numbers.
+     - Track enum divergence (facts using `mobile`, `robotics`, `hardware`, `iot`, `management` outside the 6 canonical tracks) is documented in proposals for human alignment.
+- **Rationale:** Separates deterministic typography/layout/parsing guarantees from verification defect detection and generation constraints, achieving 100% offline regression coverage without metric drift.
 - **Alternatives rejected:**
-  - *Instructing the LLM to format quotes and categorize ROS 2:* Rejected because generative models inconsistently adhere to low-level typography and taxonomy rules.
-  - *Expanding page margins:* Rejected because standard margins are required for recruiter readability; shortening institution names preserves document density.
-  - *Modifying candidate ground truth directly:* Rejected because agent rules strictly forbid autonomous edits to candidate profiles.
+  - *Redefining frozen `hard_pass` metric:* Rejected because changing the metric invalidates frozen hypotheses H0/H1.
+  - *Inventing TinyML benchmarks in candidate facts:* Rejected because agent rules strictly forbid fabricating unmeasured candidate data.
+  - *Using LLM for quote escaping and ROS 2 categorization:* Rejected due to stochastic categorization failures.
 
 
 
