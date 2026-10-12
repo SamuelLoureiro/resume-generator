@@ -1,6 +1,8 @@
 """Unit tests for LaTeX Jinja2 template rendering."""
 
 from pathlib import Path
+import shutil
+import subprocess
 import jinja2
 
 from src.data import (
@@ -261,4 +263,71 @@ def test_template_language_rendering_with_and_without_certificate() -> None:
     assert "French (B1)" in rendered
     assert "((" not in rendered
     assert "))" not in rendered
+
+
+def test_education_and_experience_header_macro_structure() -> None:
+    r"""Verify that templates/resume.tex.j2 renders dates inside non-wrapping \mbox macro."""
+    resume = create_sample_tailored_resume()
+    template_path = Path("templates/resume.tex.j2")
+    env = jinja2.Environment(
+        block_start_string="<%",
+        block_end_string="%>",
+        variable_start_string="<<",
+        variable_end_string=">>",
+        comment_start_string="<#",
+        comment_end_string="#>",
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=False,
+    )
+    template = env.from_string(template_path.read_text(encoding="utf-8"))
+    rendered = template.render(**resume.to_latex_context())
+
+    # Education date must use \mbox
+    assert r"\hfill \mbox{\small\color{subtext} 03/2023 -- 12/2026}" in rendered
+    # Experience date must use \mbox
+    assert r"\hfill \mbox{\small\color{subtext} 08/2024 -- Present}" in rendered
+
+
+def test_enib_header_does_not_wrap_to_second_line(tmp_path: Path) -> None:
+    """Test that the ENIB education line fits entirely on one single line at 10pt A4 without wrapping."""
+    from src.generation.formatter import ResumeFormatter
+
+    resume = create_sample_tailored_resume()
+    resume.education = [
+        ResumeEducation(
+            degree="Engineering Degree (Diplôme d'Ingénieur - Bac +5)",
+            institution="École Nationale d'Ingénieurs de Brest (ENIB)",
+            location="Plouzané, France",
+            period="09/2025 - 08/2027",
+            highlights=["Relevant Coursework: Microprocessors and Embedded Systems"],
+        )
+    ]
+    # Institution is normalized to ENIB
+    assert resume.education[0].institution == "ENIB"
+
+    formatter = ResumeFormatter(output_dir=tmp_path)
+    pdf_path = formatter.compile_pdf(resume)
+    assert pdf_path.exists()
+
+    pdftotext_bin = shutil.which("pdftotext")
+    if pdftotext_bin:
+        proc = subprocess.run(
+            [pdftotext_bin, "-layout", str(pdf_path), "-"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        lines = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+        degree_line = next(
+            (l for l in lines if "Engineering Degree" in l),
+            None,
+        )
+        assert degree_line is not None, "Degree line not found in PDF output"
+        # The date must be on the EXACT SAME line, not dropped to a second line
+        assert "09/2025" in degree_line and "08/2027" in degree_line, (
+            f"ENIB header wrapped to a second line! Found degree line: '{degree_line}'"
+        )
+        assert "ENIB" in degree_line
+
 

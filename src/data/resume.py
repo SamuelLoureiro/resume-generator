@@ -227,6 +227,15 @@ class ResumeEducation(BaseModel):
         description="Relevant academic highlights or coursework",
     )
 
+    @field_validator("institution", mode="before")
+    @classmethod
+    def shorten_institution_names(cls, v: Any) -> Any:
+        """Shorten known overly long institution names so education headers fit on one line at 10pt A4."""
+        if isinstance(v, str):
+            if "École Nationale d'Ingénieurs de Brest" in v:
+                return "ENIB"
+        return v
+
 
 class ResumeExperience(BaseModel):
     """Professional or extracurricular experience entry.

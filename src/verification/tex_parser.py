@@ -28,7 +28,9 @@ _ENTRY_RE = re.compile(
     r"(?=\\noindent\s*\\textbf\{\\color\{primary\}|\Z)",
     re.DOTALL,
 )
-_HFILL_RE = re.compile(r"\\hfill\s*\{\\small\\color\{subtext\}\s*(?P<period>.*?)\}")
+_HFILL_RE = re.compile(
+    r"\\hfill\s*(?:\\mbox\s*\{)?\s*(?:\{)?\s*\\small\\color\{subtext\}\s*(?P<period>.*?)\}(?:\s*\})?"
+)
 _LOCATION_RE = re.compile(r"\\newline\s*\{\\footnotesize\\color\{subtext\}\s*(?P<loc>.*?)\}")
 _TECH_RE = re.compile(r"\\newline\s*\{\\footnotesize\\textbf\{[^}]*\}\s*\\textit\{(?P<tech>.*?)\}\}")
 _PROJECT_URL_RE = re.compile(r"\\hfill\s*\{\\footnotesize\\href\{(?P<url>[^}]*)\}")

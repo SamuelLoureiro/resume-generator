@@ -85,7 +85,7 @@
 \section{<< labels.education >>}
 <% for edu in education %>
 \noindent
-\textbf{\color{primary} << edu.degree >>}, << edu.institution >><% if edu.location %> -- << edu.location >><% endif %> \hfill {\small\color{subtext} << edu.period|replace(' - ', ' -- ') >>}
+\textbf{\color{primary} << edu.degree >>}, << edu.institution >><% if edu.location %> -- << edu.location >><% endif %> \hfill \mbox{\small\color{subtext} << edu.period|replace(' - ', ' -- ') >>}
 <% if edu.highlights %>
 \begin{itemize}
     <% for highlight in edu.highlights %>
@@ -105,7 +105,7 @@
 \section{<< labels.experience >>}
 <% for exp in experiences %>
 \noindent
-\textbf{\color{primary} << exp.title >>}, << exp.organization >> \hfill {\small\color{subtext} << exp.period|replace(' - ', ' -- ') >>}
+\textbf{\color{primary} << exp.title >>}, << exp.organization >> \hfill \mbox{\small\color{subtext} << exp.period|replace(' - ', ' -- ') >>}
 <% if exp.location %>
 \newline {\footnotesize\color{subtext} << exp.location >>}
 <% endif %>
