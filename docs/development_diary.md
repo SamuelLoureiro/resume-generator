@@ -749,6 +749,41 @@
 - **Challenges:** Period dash normalization regex precedence initially left whitespace; resolved and verified via round-trip tests.
 - **Next steps:** Ready for real-world testing via Gradio UI for additional target postings.
 
+## 2026-10-12 — ADR-025: Phase A Deterministic Template Hardening, Typographic Escaping, and Skills Taxonomy Alignment
+- **What was done:**
+  - Standardized Language Line Rendering (Defect 4):
+    - Added `format_language_entry()` and structured fields (`level`, `certificate`, `formatted`) with `@model_validator` in `src/data/resume.py`.
+    - Standardized single outer parentheses around certificates: e.g. `English (B2) (TOEIC)` instead of double parentheses `((...))`.
+    - Updated `templates/resume.tex.j2` and `src/verification/tex_parser.py` to parse and render structured language fields with backward compatibility.
+    - Added unit and template tests in `tests/test_schemas.py` and `tests/test_template.py`.
+  - Hardened Non-Wrapping Date Column and ENIB Width Optimization (Defect 5):
+    - Wrapped the date column in `\mbox{\small\color{subtext} ...}` across education and experience headers in `templates/resume.tex.j2`.
+    - Added model validator on `ResumeEducation` in `src/data/resume.py` to shorten `"École Nationale d'Ingénieurs de Brest (ENIB)"` to `"ENIB"`, preventing header overflow at 10pt A4.
+    - Updated `_HFILL_RE` regex in `src/verification/tex_parser.py` to match `\mbox`-wrapped date structures.
+    - Added render test in `tests/test_template.py` verifying macro structure and Tectonic compilation.
+  - Implemented Typographic Quotes Escaping (Defect 6):
+    - Created `convert_typographic_quotes()` in `src/data/resume.py` converting straight quotes (`'`, `"..."`) to curly glyphs (`’`, `“...”`).
+    - Hooked into `escape_latex()` and `_deep_escape()`, strictly protecting LaTeX commands, accents (e.g. `\'e`), and raw URLs.
+    - Added tests in `tests/test_schemas.py` for apostrophes, quoted strings, accented characters, and URLs.
+  - Deterministic Skills Category Taxonomy & ROS 2 Placement (Defect 7):
+    - Created `src/data/skills_map.py` implementing `SKILL_TO_CATEGORY_KEY`, `get_skill_category_key()`, `get_skill_category_name()`, `flag_unknown_skills()`, and `reorganize_resume_skills()`.
+    - Deterministically mapped ROS 2 variants to `"Robotics & Middleware"` (`robotics`).
+    - Integrated `reorganize_resume_skills()` in `parse_tailored_resume()`, `build_fallback_tailored_resume()`, and `repair_resume()`.
+    - Created `tests/test_skills_map.py` asserting all candidate skills are mapped, unmapped skills are flagged, and ROS 2 is moved out of frameworks.
+  - Authored Data and Prompt Proposals (`docs/proposals/ADR-025_data_proposals.md`):
+    - Documented proposed changes for human review covering Defect 10 (TinyML hardware metrics), Defect 9 ("Member of the Month" dropped), Defect 3 (Fact fusion between leadership and awards), Defect 8 (Coursework relevance filtering), Defect 1 ("verified" vocabulary leak), and Defect 2 (verbatim job description echo phrases).
+  - Authored ADR-025 in `docs/decisions_log.md`.
+  - Executed full test suite: **407/407 tests passing** offline in 54.4s (396 existing + 11 new tests).
+- **Decisions made:**
+  - Phase A addressed only deterministic template, escaping, and taxonomy fixes without calling any LLM.
+  - Shortened long school names at the model validation level rather than changing page margins or sacrificing recruiter readability.
+  - Protected LaTeX accents and URLs during quote typography conversion.
+  - Proposed candidate data changes in `docs/proposals/ADR-025_data_proposals.md` rather than editing protected files.
+- **Model used:** Gemini 3.8 Flash (High), Tectonic 0.15.0.
+- **Challenges:** Aligning skills taxonomy category names across multilingual tests without breaking existing test assertions; resolved by matching `CATEGORY_NAMES` to standard canonical test keys.
+- **Next steps:** Human review of `docs/proposals/ADR-025_data_proposals.md` to apply candidate profile and atomic fact updates, followed by Phase B (prompt and verifier heuristics for fact fusion and vocabulary leaks).
+
+
 
 
 

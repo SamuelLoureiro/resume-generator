@@ -407,6 +407,47 @@
   - *Hardcoding automotive ECU instructions directly into prompts:* Rejected because it violates domain-agnostic prompting principles and degrades generalization across other engineering tracks.
   - *Mutating candidate strings inside Jinja2 template:* Rejected because it breaks two-way round-trip idempotence (`ResumeSchema <-> LaTeX`).
 
+### ADR-025: Phase A Deterministic Template Hardening, Typographic Escaping, and Skills Taxonomy Alignment
+
+- **Status:** Accepted
+- **Date:** 2026-10-12
+- **Context:**
+  - Evaluation of the generated PDF for *Inalfa Roof Systems (AI Processing in Automotive ECUs, EN)* surfaced several layout, escaping, and content-organization defects:
+    1. Language proficiency rendered with double parentheses: `English (B2) ((TOEIC...))` due to uncoordinated string composition.
+    2. Regression from ADR-024: Long institution names (e.g., `École Nationale d'Ingénieurs de Brest (ENIB)`) in the inlined header exceeded the 531pt line width at 10pt A4, wrapping the date column onto a second line.
+    3. Straight quotes and apostrophes (`'`, `"`) were rendered directly into LaTeX output rather than typographic curved glyphs (`’`, `“`, `”`).
+    4. "ROS 2" was nondeterministically placed by the LLM into general machine learning / frameworks rather than a dedicated robotics / middleware category.
+    5. Additional defects identified in content generation (fact fusion between leadership and awards, pipeline vocabulary leak "verified", echoing job description phrases, dropped individual award, coursework relevance, missing TinyML metrics).
+- **Decision:**
+  1. **Structured Language Line Rendering (`src/data/resume.py`, `templates/resume.tex.j2`):**
+     - Added `format_language_entry()` and structured fields (`level`, `certificate`, `formatted`) on `ResumeLanguage`.
+     - Standardized certificate presentation to exactly one pair of parentheses: `English (B2) (TOEIC)` instead of nested double parentheses.
+     - Updated `tex_parser.py` to extract and normalize structured language fields without parenthetical clutter.
+  2. **Non-Wrapping Date Column and ENIB Width Optimization (`templates/resume.tex.j2`, `src/data/resume.py`, `src/verification/tex_parser.py`):**
+     - Wrapped the date column macro in `\mbox{\small\color{subtext} ...}` across education and experience templates, preventing the date from line-breaking internally.
+     - Added a model validator on `ResumeEducation` to normalize long institution names (`"École Nationale d'Ingénieurs de Brest (ENIB)"` -> `"ENIB"`), saving ~200pt of horizontal space and guaranteeing single-line layout at 10pt A4.
+     - Extended `_HFILL_RE` regex in `src/verification/tex_parser.py` to transparently match `\mbox`-wrapped date blocks during round-trip parsing.
+  3. **Typographic Quote Escaping (`src/data/resume.py`):**
+     - Implemented `convert_typographic_quotes()` and hooked it into `escape_latex()` and `_deep_escape()`.
+     - Converts straight apostrophes (`'`) to curly apostrophes (`’`) and straight double quotes (`"..."`) to typographic quotation marks (`“...”`).
+     - Strictly preserves LaTeX accents (`\'e`), LaTeX control sequences, and URL link targets.
+  4. **Deterministic Skills Taxonomy (`src/data/skills_map.py`, `src/generation/chain.py`, `src/verification/repair.py`):**
+     - Implemented deterministic taxonomy mapping (`prog`, `embedded`, `robotics`, `frameworks`, `databases`, `tools`, `soft`) across English, Portuguese, and French.
+     - Explicitly mapped "ROS 2", "ROS", and "Micro-ROS" to `robotics` (`"Robotics & Middleware"`).
+     - Applied `reorganize_resume_skills()` in `parse_tailored_resume()`, `build_fallback_tailored_resume()`, and `repair_resume()`.
+     - Added `flag_unknown_skills()` to detect unmapped technical keywords.
+  5. **Explicit Scope of What Phase A Does NOT Cover:**
+     - Phase A is strictly deterministic and offline (no LLM prompts or API calls).
+     - Defects 1, 2, 3 (vocabulary leak "verified", job description echoing, fact fusion between `exp_asimov_leadership` and `exp_asimov_awards`) require Phase B prompt engineering and verifier heuristics.
+     - Defect 8 (coursework relevance ranking) requires Phase B matching algorithms.
+     - Defects 9 and 10 (dropped "Member of the Month", missing TinyML RAM/Flash/latency benchmark figures) are data gaps documented as concrete proposals in `docs/proposals/ADR-025_data_proposals.md` awaiting human review.
+- **Rationale:** Deterministic layout, typography, and categorization fixes guarantee robust, repeatable formatting without introducing stochastic LLM drift or brittle prompt instructions.
+- **Alternatives rejected:**
+  - *Instructing the LLM to format quotes and categorize ROS 2:* Rejected because generative models inconsistently adhere to low-level typography and taxonomy rules.
+  - *Expanding page margins:* Rejected because standard margins are required for recruiter readability; shortening institution names preserves document density.
+  - *Modifying candidate ground truth directly:* Rejected because agent rules strictly forbid autonomous edits to candidate profiles.
+
+
 
 
 
