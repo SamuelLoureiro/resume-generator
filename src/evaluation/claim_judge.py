@@ -25,7 +25,7 @@ from src.generation.chain import extract_json_payload, get_gemini_llm
 
 logger = logging.getLogger(__name__)
 
-CLAIM_JUDGE_PROMPT_VERSION = "claim_judge_v2.0"
+CLAIM_JUDGE_PROMPT_VERSION = "claim_judge_v2.1"
 
 ClaimType = Literal["action", "metric", "tool", "scope", "relational", "other"]
 VerdictType = Literal["grounded", "partially_grounded", "unsupported_claim", "inflated_scope"]
@@ -176,11 +176,13 @@ CRITICAL MANDATES (CLOSED-WORLD ASSUMPTION):
    - You must write a concise `rationale` and provide an exact `evidence_quote` from the cited fact BEFORE committing to `verdict`.
    - If `verdict` is "grounded", `matched_fact_ids` must not be empty.
    - Allowed verdicts: "grounded", "partially_grounded", "unsupported_claim", "inflated_scope". NOTE: "relational" is a claim_type, NOT a verdict! The verdict for any relational error is "unsupported_claim".
+6. SUMMARY CLAIMS (ONE FACT AT A TIME):
+   - For summary bullets (`summary` or `summary_i`), evaluate claims strictly against its single indicated `matched_fact`. Never use facts from unrelated experiences to support summary claims.
 
 Output format: pure JSON conforming to the schema:
 {
   "resume_id": "<string>",
-  "prompt_version": "claim_judge_v2.0",
+  "prompt_version": "claim_judge_v2.1",
   "claims": [
     {
       "bullet_id": "<string>",
@@ -210,13 +212,33 @@ def format_facts_for_judge(facts: CandidateFacts) -> str:
     return "\n".join(lines)
 
 
-def format_resume_bullets_for_judge(resume: TailoredResume) -> str:
-    """Format resume entries and bullets with explicit IDs for the judge."""
+def format_resume_bullets_for_judge(
+    resume: TailoredResume,
+    facts: CandidateFacts | None = None,
+) -> str:
+    """Format resume entries and bullets with explicit IDs for the judge.
+
+    For summary sentences, links each sentence to its single nearest candidate fact
+    so the judge evaluates against ONE candidate fact at a time (B4).
+    """
     lines = ["# RESUME CONTENT TO VERIFY:"]
 
     if resume.objective_or_summary:
         clean_sum = strip_latex_markup(resume.objective_or_summary)
-        lines.append(f'- [BULLET id="summary"] "{clean_sum}"')
+        from src.verification.matching import similarity
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", clean_sum) if s.strip()]
+        if len(sentences) > 1 and facts is not None:
+            for s_idx, sent in enumerate(sentences):
+                best_fid = "none"
+                best_sim = 0.0
+                for f in facts.facts:
+                    sim = similarity(sent, f.text)
+                    if sim > best_sim:
+                        best_sim = sim
+                        best_fid = f.id
+                lines.append(f'- [BULLET id="summary_{s_idx}" matched_fact="{best_fid}"] "{sent}"')
+        else:
+            lines.append(f'- [BULLET id="summary"] "{clean_sum}"')
 
     for e_idx, exp in enumerate(resume.experiences):
         org = strip_latex_markup(exp.organization)
@@ -261,7 +283,7 @@ class ClaimLevelJudge:
     def get_cache_key(self, resume_id: str, resume: TailoredResume, facts: CandidateFacts) -> str:
         """Compute deterministic hash key for caching."""
         facts_block = format_facts_for_judge(facts)
-        resume_block = format_resume_bullets_for_judge(resume)
+        resume_block = format_resume_bullets_for_judge(resume, facts)
         model_name = getattr(self._llm, "model", "gemini")
         content = f"{resume_id}:{facts_block}:{resume_block}:{CLAIM_JUDGE_PROMPT_VERSION}:{model_name}"
         return hashlib.sha256(content.encode("utf-8")).hexdigest()
@@ -301,7 +323,7 @@ class ClaimLevelJudge:
                 return ResumeEvaluationPayload.model_validate(data)
 
         facts_block = format_facts_for_judge(facts)
-        resume_block = format_resume_bullets_for_judge(resume)
+        resume_block = format_resume_bullets_for_judge(resume, facts)
 
         user_content = (
             f"Please evaluate the resume '{resume_id}' against the verified facts.\n\n"

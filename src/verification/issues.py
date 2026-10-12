@@ -31,6 +31,9 @@ IssueKind = Literal[
     "judge_inflated",
     "judge_unavailable",
     "format",
+    "summary_lint",
+    "job_phrase_echo",
+    "fact_fusion",
 ]
 IssueSource = Literal["deterministic", "judge"]
 
@@ -44,6 +47,9 @@ TRUTH_KINDS: frozenset[str] = frozenset(
         "judge_unsupported",
         "judge_inflated",
         "judge_unavailable",
+        "summary_lint",
+        "job_phrase_echo",
+        "fact_fusion",
     }
 )
 """Issue kinds that concern truthfulness (fabrication / inflation / unverifiable).
@@ -254,6 +260,25 @@ def collect_issues(
                 check=f"M1d/{getattr(claim, 'claim_type', 'other')}",
             )
         )
+
+    if getattr(report, "defects", None):
+        for d in report.defects:
+            if isinstance(d, VerificationIssue):
+                issues.append(d)
+            elif isinstance(d, dict):
+                issues.append(
+                    VerificationIssue(
+                        kind=d.get("kind", "summary_lint"),
+                        source=d.get("source", "deterministic"),
+                        location=d.get("location", "resume"),
+                        text=d.get("text", ""),
+                        detail=d.get("detail", ""),
+                        fact_id=d.get("fact_id"),
+                        scope_ceiling=d.get("scope_ceiling"),
+                        check=d.get("check"),
+                        llm_fixable=d.get("llm_fixable", True),
+                    )
+                )
 
     for check in report.format.failed:
         issues.append(

@@ -18,7 +18,10 @@ from src.evaluation.injection import (
     inject_fake_entity_date,
     inject_fake_number,
     inject_fake_skill,
+    inject_fused_facts,
     inject_inflated_verb,
+    inject_job_phrase_echo,
+    inject_meta_word,
 )
 from src.generation.chain import build_fallback_tailored_resume
 from src.verification.ground_truth import GroundTruth
@@ -148,12 +151,45 @@ def test_inject_cross_project_conflation() -> None:
     assert injection.injected_span in injection.injected_text
 
 
+def test_inject_meta_word_triggers_b1() -> None:
+    resume, profile, facts, job = _make_sample_resume()
+    mut_resume, injection = inject_meta_word(resume, seed=42, resume_id="test_fresh_grad")
+    assert injection.defect_class == "meta_word"
+    assert injection.expected_detector == "deterministic_p5"
+
+    report = verify_resume(mut_resume, profile, facts, job=job, track="core_swe")
+    assert not report.defect_free
+    assert any(d["kind"] == "summary_lint" and "verified" in d["text"] for d in report.defects)
+
+
+def test_inject_job_phrase_echo_triggers_b2() -> None:
+    resume, profile, facts, job = _make_sample_resume()
+    # Ensure job description has the phrase
+    job.raw_description = "Develop lightweight neural networks for edge devices."
+    mut_resume, injection = inject_job_phrase_echo(resume, job, seed=42, resume_id="test_fresh_grad")
+    assert injection.defect_class == "job_phrase_echo"
+
+    report = verify_resume(mut_resume, profile, facts, job=job, track="core_swe")
+    assert not report.defect_free
+    assert any(d["kind"] == "job_phrase_echo" and "lightweight neural networks" in d["text"] for d in report.defects)
+
+
+def test_inject_fused_facts_triggers_b3() -> None:
+    resume, profile, facts, job = _make_sample_resume()
+    mut_resume, injection = inject_fused_facts(resume, seed=42, resume_id="test_fresh_grad")
+    assert injection.defect_class == "fused_facts"
+
+    report = verify_resume(mut_resume, profile, facts, job=job, track="core_swe")
+    assert not report.defect_free
+    assert any(d["kind"] == "fact_fusion" for d in report.defects)
+
+
 def test_generate_corrupted_dataset_summary() -> None:
     profile_a, facts_a = get_synthetic_fresh_grad()
     job_a = JobPosting(
         title="Software Engineering Intern",
         company="TechCorp",
-        raw_description="Software Engineering Intern.",
+        raw_description="Develop lightweight neural networks for embedded systems.",
         track="core_swe",
     )
     resume_a = build_fallback_tailored_resume(profile_a, job_a, language="en")
@@ -170,3 +206,6 @@ def test_generate_corrupted_dataset_summary() -> None:
     assert "fake_skill" in defect_classes
     assert "fake_number" in defect_classes
     assert "fabricated_responsibility" in defect_classes
+    assert "meta_word" in defect_classes
+    assert "job_phrase_echo" in defect_classes
+    assert "fused_facts" in defect_classes

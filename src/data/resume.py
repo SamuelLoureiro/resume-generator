@@ -470,7 +470,10 @@ class TailoredResume(BaseModel):
         ...,
         description="Hiring company targeted",
     )
-    header: ResumeHeader
+    header: ResumeHeader = Field(
+        default_factory=ResumeHeader,
+        description="Candidate header details",
+    )
     objective_or_summary: str | None = Field(
         default=None,
         description="Tailored career objective or summary",

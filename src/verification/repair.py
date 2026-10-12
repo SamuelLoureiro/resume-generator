@@ -14,6 +14,7 @@ this module applies deterministic surgery to guarantee zero fabricated claims:
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -30,7 +31,6 @@ from src.data.resume import (
     TailoredResume,
 )
 from src.data.skills_map import reorganize_resume_skills
-from src.generation.chain import build_fallback_tailored_resume
 from src.verification.fabrication import names_match
 from src.verification.ground_truth import GroundTruth, extract_numbers
 from src.verification.issues import (
@@ -104,8 +104,13 @@ def repair_resume(
     flagged_bullet_texts: set[str] = set()
     summary_flagged = False
 
+    meta_word_issues: list[VerificationIssue] = []
+
     for issue in issues:
         if not issue.is_truth_issue:
+            continue
+        if issue.kind == "summary_lint":
+            meta_word_issues.append(issue)
             continue
         if issue.location == "summary" or (issue.text and issue.text == resume.objective_or_summary):
             summary_flagged = True
@@ -145,6 +150,8 @@ def repair_resume(
     if not repaired_skills and (
         profile.skills.programming_languages or profile.skills.frameworks_and_libraries
     ):
+        from src.generation.chain import build_fallback_tailored_resume
+
         fallback_res = build_fallback_tailored_resume(
             profile,
             resolved_job,
@@ -220,7 +227,20 @@ def repair_resume(
                 )
             )
             if not is_flagged:
-                clean_bullets.append(bullet)
+                clean_b = bullet
+                for m_iss in meta_word_issues:
+                    if m_iss.location == b_id or re.search(r"\b" + re.escape(m_iss.text) + r"\b", clean_b, re.IGNORECASE):
+                        clean_b = re.sub(r"\b" + re.escape(m_iss.text) + r"\s*", "", clean_b, flags=re.IGNORECASE).strip()
+                        clean_b = re.sub(r"\s+", " ", clean_b)
+                        actions.append(
+                            RepairAction(
+                                category="experience",
+                                target=f"{exp.organization}/{b_id}",
+                                action="delete_forbidden_meta_word",
+                                detail=f"Deleted meta-word '{m_iss.text}' from bullet.",
+                            )
+                        )
+                clean_bullets.append(clean_b)
             else:
                 actions.append(
                     RepairAction(
@@ -289,7 +309,20 @@ def repair_resume(
                 )
             )
             if not is_flagged:
-                clean_bullets.append(bullet)
+                clean_b = bullet
+                for m_iss in meta_word_issues:
+                    if m_iss.location == b_id or re.search(r"\b" + re.escape(m_iss.text) + r"\b", clean_b, re.IGNORECASE):
+                        clean_b = re.sub(r"\b" + re.escape(m_iss.text) + r"\s*", "", clean_b, flags=re.IGNORECASE).strip()
+                        clean_b = re.sub(r"\s+", " ", clean_b)
+                        actions.append(
+                            RepairAction(
+                                category="project",
+                                target=f"{proj.name}/{b_id}",
+                                action="delete_forbidden_meta_word",
+                                detail=f"Deleted meta-word '{m_iss.text}' from bullet.",
+                            )
+                        )
+                clean_bullets.append(clean_b)
             else:
                 actions.append(
                     RepairAction(
@@ -397,6 +430,19 @@ def repair_resume(
                 detail="Reset objective/summary to deterministic truthful template.",
             )
         )
+    elif repaired_summary and meta_word_issues:
+        for m_iss in meta_word_issues:
+            if m_iss.location == "summary" or re.search(r"\b" + re.escape(m_iss.text) + r"\b", repaired_summary, re.IGNORECASE):
+                repaired_summary = re.sub(r"\b" + re.escape(m_iss.text) + r"\s*", "", repaired_summary, flags=re.IGNORECASE).strip()
+                repaired_summary = re.sub(r"\s+", " ", repaired_summary)
+                actions.append(
+                    RepairAction(
+                        category="summary",
+                        target="objective_or_summary",
+                        action="delete_forbidden_meta_word",
+                        detail=f"Deleted meta-word '{m_iss.text}' from summary.",
+                    )
+                )
 
     # 6. Repair Certifications & Languages
     repaired_certs = [

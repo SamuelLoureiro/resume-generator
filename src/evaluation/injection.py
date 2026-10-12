@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.data.candidate import CandidateProfile
 from src.data.facts import AtomicFact, CandidateFacts
+from src.data.job_posting import JobPosting
 from src.data.resume import TailoredResume
 from src.verification.ground_truth import GroundTruth, extract_numbers
 from src.verification.matching import match_resume_bullets
@@ -34,6 +35,9 @@ DefectClass = Literal[
     "fake_entity_date",
     "fabricated_responsibility",
     "cross_project_conflation",
+    "meta_word",
+    "job_phrase_echo",
+    "fused_facts",
 ]
 
 
@@ -508,6 +512,98 @@ def inject_cross_project_conflation(
     return mut_resume, injection
 
 
+def inject_meta_word(
+    resume: TailoredResume,
+    seed: int = 42,
+    resume_id: str = "resume",
+) -> tuple[TailoredResume, GroundTruthInjection]:
+    """Inject a forbidden pipeline meta-word (B1) into free text (summary or bullet)."""
+    meta_word = "verified"
+    data = resume.model_dump()
+    orig_text = data.get("objective_or_summary") or ""
+    injected_text = f"Student with verified expertise: {orig_text}"
+    data["objective_or_summary"] = injected_text
+    mut_resume = TailoredResume.model_validate(data)
+
+    injection = GroundTruthInjection(
+        mutation_id=f"mut_{resume_id}_meta_word_{seed}",
+        resume_id=resume_id,
+        defect_class="meta_word",
+        target_section="objective_or_summary",
+        bullet_id="summary",
+        original_text=orig_text,
+        injected_text=injected_text,
+        injected_span=meta_word,
+        expected_verdict="unsupported_claim",
+        expected_detector="deterministic_p5",
+    )
+    return mut_resume, injection
+
+
+def inject_job_phrase_echo(
+    resume: TailoredResume,
+    job: JobPosting,
+    seed: int = 42,
+    resume_id: str = "resume",
+) -> tuple[TailoredResume, GroundTruthInjection]:
+    """Inject an ungrounded 3-gram echoed verbatim from job description (B2)."""
+    echo_phrase = "lightweight neural networks"
+    data = resume.model_dump()
+    orig_text = data.get("objective_or_summary") or ""
+    injected_text = f"{orig_text} Seeking to apply {echo_phrase}."
+    data["objective_or_summary"] = injected_text
+    mut_resume = TailoredResume.model_validate(data)
+
+    injection = GroundTruthInjection(
+        mutation_id=f"mut_{resume_id}_job_echo_{seed}",
+        resume_id=resume_id,
+        defect_class="job_phrase_echo",
+        target_section="objective_or_summary",
+        bullet_id="summary",
+        original_text=orig_text,
+        injected_text=injected_text,
+        injected_span=echo_phrase,
+        expected_verdict="unsupported_claim",
+        expected_detector="deterministic_p5",
+    )
+    return mut_resume, injection
+
+
+def inject_fused_facts(
+    resume: TailoredResume,
+    seed: int = 42,
+    resume_id: str = "resume",
+) -> tuple[TailoredResume, GroundTruthInjection]:
+    """Inject a fact-fused sentence combining distinct achievements (B3)."""
+    fused_text = "Spearheaded creation of Data Science department and won Area of the Month."
+    data = resume.model_dump()
+    if data.get("experiences") and data["experiences"][0].get("bullets"):
+        orig_text = data["experiences"][0]["bullets"][0]
+        data["experiences"][0]["bullets"][0] = fused_text
+        b_id = "exp_0_bullet_0"
+        target_sec = "experiences[0].bullets[0]"
+    else:
+        orig_text = data.get("objective_or_summary") or ""
+        data["objective_or_summary"] = fused_text
+        b_id = "summary"
+        target_sec = "objective_or_summary"
+
+    mut_resume = TailoredResume.model_validate(data)
+    injection = GroundTruthInjection(
+        mutation_id=f"mut_{resume_id}_fused_facts_{seed}",
+        resume_id=resume_id,
+        defect_class="fused_facts",
+        target_section=target_sec,
+        bullet_id=b_id,
+        original_text=orig_text,
+        injected_text=fused_text,
+        injected_span=fused_text,
+        expected_verdict="unsupported_claim",
+        expected_detector="deterministic_p5",
+    )
+    return mut_resume, injection
+
+
 # ---------------------------------------------------------------------------
 # High-Level Dataset Generator
 # ---------------------------------------------------------------------------
@@ -591,6 +687,34 @@ def generate_corrupted_dataset(
         try:
             mut_r, inj = inject_cross_project_conflation(resume, facts, seed, r_id)
             c = CorruptedResume(resume_id=f"{r_id}_L6", resume=mut_r, injections=[inj], active_facts=facts)
+            corrupted_list.append(c)
+            ledger.append(inj)
+        except Exception:
+            pass
+
+        # L7: meta_word
+        try:
+            mut_r, inj = inject_meta_word(resume, seed, r_id)
+            c = CorruptedResume(resume_id=f"{r_id}_L7", resume=mut_r, injections=[inj], active_facts=facts)
+            corrupted_list.append(c)
+            ledger.append(inj)
+        except Exception:
+            pass
+
+        # L8: job_phrase_echo
+        try:
+            sample_job = JobPosting(title="Engineering Intern", company="TechCorp", raw_description="Requires lightweight neural networks.")
+            mut_r, inj = inject_job_phrase_echo(resume, sample_job, seed, r_id)
+            c = CorruptedResume(resume_id=f"{r_id}_L8", resume=mut_r, injections=[inj], active_facts=facts)
+            corrupted_list.append(c)
+            ledger.append(inj)
+        except Exception:
+            pass
+
+        # L9: fused_facts
+        try:
+            mut_r, inj = inject_fused_facts(resume, seed, r_id)
+            c = CorruptedResume(resume_id=f"{r_id}_L9", resume=mut_r, injections=[inj], active_facts=facts)
             corrupted_list.append(c)
             ledger.append(inj)
         except Exception:
