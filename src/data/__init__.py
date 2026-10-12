@@ -27,6 +27,7 @@ from src.data.resume import (
     TailoredResume,
     escape_latex,
     format_language_entry,
+    convert_typographic_quotes,
 )
 from src.data.synthetic_profiles import (
     get_synthetic_fresh_grad,
@@ -59,5 +60,6 @@ __all__ = [
     "ResumeLanguage",
     "escape_latex",
     "format_language_entry",
+    "convert_typographic_quotes",
 ]
 

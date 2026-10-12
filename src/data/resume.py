@@ -126,8 +126,64 @@ def format_language_entry(
     return lang
 
 
+def convert_typographic_quotes(text: str) -> str:
+    """Convert straight quotes and apostrophes to typographic equivalents.
+
+    Converts:
+        - "..." -> “...”
+        - ' -> ’ (in contractions/possessives: candidate's, don't)
+        - '...' -> ‘...’ (quoted phrases)
+
+    Preserves:
+        - \\' (LaTeX accents like \\'e)
+        - URLs (https://..., http://...)
+
+    Args:
+        text: Plain or lightly-marked text.
+
+    Returns:
+        str: Text with typographic quotes and apostrophes.
+    """
+    if not text:
+        return ""
+
+    protected = re.compile(
+        r"https?://[^\s<>{}\"]+"  # URLs
+        r"|\\'"                    # LaTeX accent \'
+    )
+
+    parts: list[tuple[str, str]] = []
+    last_end = 0
+    for m in protected.finditer(text):
+        if m.start() > last_end:
+            parts.append(("text", text[last_end:m.start()]))
+        parts.append(("protected", m.group(0)))
+        last_end = m.end()
+    if last_end < len(text):
+        parts.append(("text", text[last_end:]))
+
+    out: list[str] = []
+    for kind, val in parts:
+        if kind == "protected":
+            out.append(val)
+        else:
+            # 1. Double quotes: "..." -> “...”
+            s = re.sub(r'"([^"\n]*)"', r'“\1”', val)
+            s = re.sub(r'(^|[\s(\[])"', r'\1“', s)
+            s = s.replace('"', '”')
+            # 2. Paired single quotes: '...' -> ‘...’
+            s = re.sub(r"(^|[\s(\[])'([^'\n]+)'(?=[\s)\].,;:!?]|$)", r"\1‘\2’", s)
+            # 3. Apostrophes: ' -> ’
+            s = s.replace("'", "’")
+            out.append(s)
+    return "".join(out)
+
+
 def escape_latex(text: str) -> str:
     """Escape special LaTeX characters in a plain text string.
+
+    Converts straight apostrophes and quotes to typographic equivalents,
+    while escaping reserved LaTeX characters and preserving accents/commands/URLs.
 
     Args:
         text: Plain text input.
@@ -138,7 +194,12 @@ def escape_latex(text: str) -> str:
     if not text:
         return ""
 
-    # Replace backslash first if needed, then other reserved characters
+    # First apply typographic quote conversion
+    text = convert_typographic_quotes(str(text))
+
+    # Protect \' and URLs so \' does not become \textbackslash{}'
+    protected = re.compile(r"https?://[^\s<>{}\"]+|\\'")
+
     replacements = {
         "\\": r"\textbackslash{}",
         "&": r"\&",
@@ -153,20 +214,33 @@ def escape_latex(text: str) -> str:
         "—": "---",
         "–": "--",
     }
-
-    # Use regex to substitute safely
     pattern = re.compile("|".join(re.escape(k) for k in replacements.keys()))
-    return pattern.sub(lambda m: replacements[m.group(0)], str(text))
+
+    parts: list[str] = []
+    last_end = 0
+    for m in protected.finditer(text):
+        if m.start() > last_end:
+            chunk = text[last_end:m.start()]
+            parts.append(pattern.sub(lambda match: replacements[match.group(0)], chunk))
+        parts.append(m.group(0))
+        last_end = m.end()
+    if last_end < len(text):
+        chunk = text[last_end:]
+        parts.append(pattern.sub(lambda match: replacements[match.group(0)], chunk))
+
+    return "".join(parts)
 
 
-def _deep_escape(data: Any) -> Any:
+def _deep_escape(data: Any, key: str | None = None) -> Any:
     """Recursively escape strings inside nested dictionaries and lists."""
     if isinstance(data, str):
+        if key and (key == "url" or key.endswith("_url")):
+            return data
         return escape_latex(data)
     elif isinstance(data, list):
-        return [_deep_escape(item) for item in data]
+        return [_deep_escape(item, key=key) for item in data]
     elif isinstance(data, dict):
-        return {k: _deep_escape(v) for k, v in data.items()}
+        return {k: _deep_escape(v, key=k) for k, v in data.items()}
     return data
 
 

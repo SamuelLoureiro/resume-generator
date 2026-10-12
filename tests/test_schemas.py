@@ -22,6 +22,7 @@ from src.data import (
     TailoredResume,
     escape_latex,
     format_language_entry,
+    convert_typographic_quotes,
 )
 
 
@@ -39,6 +40,43 @@ def test_escape_latex() -> None:
     assert r"\}" in escaped
     assert r"\textasciitilde{}" in escaped
     assert r"\textasciicircum{}" in escaped
+
+
+def test_typographic_quotes_and_apostrophes() -> None:
+    """Test converting straight quotes and apostrophes to typographic equivalents."""
+    # 1. Apostrophes in contractions and possessives
+    assert convert_typographic_quotes("candidate's") == "candidate’s"
+    assert convert_typographic_quotes("don't") == "don’t"
+    assert convert_typographic_quotes("it's a developer's tool") == "it’s a developer’s tool"
+
+    # 2. Quoted strings (double quotes)
+    assert convert_typographic_quotes('"lightweight neural networks"') == "“lightweight neural networks”"
+    assert convert_typographic_quotes('He said: "hello world"') == "He said: “hello world”"
+
+    # 3. Quoted strings (single quotes)
+    assert convert_typographic_quotes("'Area of the Month'") in ("‘Area of the Month’", "’Area of the Month’")
+
+    # 4. LaTeX accents like \' must not be broken
+    assert convert_typographic_quotes(r"\'e") == r"\'e"
+    assert convert_typographic_quotes(r"élève and \'e") == r"élève and \'e"
+
+    # 5. LaTeX commands and URLs must not be broken
+    assert convert_typographic_quotes(r"\textbf{candidate's}") == r"\textbf{candidate’s}"
+    assert (
+        convert_typographic_quotes("https://example.com/path'with?param=1&foo=2")
+        == "https://example.com/path'with?param=1&foo=2"
+    )
+
+
+def test_escape_latex_with_typographic_quotes() -> None:
+    """Verify that escape_latex applies typographic quotes without breaking LaTeX."""
+    text = 'Awarded "Member of the Month" for candidate\'s contribution, don\'t fail & 100% test'
+    escaped = escape_latex(text)
+    assert "“Member of the Month”" in escaped
+    assert "candidate’s" in escaped
+    assert "don’t" in escaped
+    assert r"\&" in escaped
+    assert r"\%" in escaped
 
 
 def test_candidate_profile_validation() -> None:
