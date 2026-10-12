@@ -6,7 +6,7 @@ Everything here is pure string processing: no network, no LLM, no randomness.
 from __future__ import annotations
 
 import re
-from typing import Iterable
+from typing import Any, Iterable
 
 _TOKEN_RE = re.compile(r"[a-z0-9+#]+")
 _TERM_SPLIT_RE = re.compile(r"[/,()&;]|\band\b|\be\b|\bet\b", re.IGNORECASE)
@@ -165,3 +165,112 @@ def unescape_latex(text: str) -> str:
     for old, new in replacements:
         text = text.replace(old, new)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def select_relevant_coursework(
+    coursework: list[str],
+    job: Any,
+    max_courses: int = 3,
+) -> list[str]:
+    """Select and rank coursework by keyword overlap with the target job posting.
+
+    Deterministic, allowlist-only filter: prioritizes courses that map to at least
+    one job keyword, technology, or title/description token.
+
+    Args:
+        coursework: Candidate's verified completed coursework list.
+        job: Target JobPosting.
+        max_courses: Maximum number of courses to keep for single-page budget.
+
+    Returns:
+        list[str]: Ranked, relevant courses (up to max_courses).
+    """
+    if not coursework:
+        return []
+
+    # Build job text and tokens
+    job_title = getattr(job, "title", "") or ""
+    job_desc = getattr(job, "raw_description", "") or ""
+    job_techs = getattr(job, "technologies", []) or []
+    job_keywords = getattr(job, "keywords", []) or []
+    job_resps = getattr(job, "responsibilities", []) or []
+    job_reqs = getattr(job, "requirements", []) or []
+
+    job_text = " ".join(
+        [
+            job_title,
+            job_desc,
+            " ".join(job_techs),
+            " ".join(job_keywords),
+            " ".join(job_resps),
+            " ".join(job_reqs),
+        ]
+    )
+
+    # Generic filler tokens that appear ubiquitously and cause false overlap
+    generic_course_tokens = {
+        "develop", "development", "engin", "engineering", "introduct", "introduction",
+        "basic", "fundamental", "principle", "project", "advanc", "advanced", "concept",
+        "comput", "computing", "scienc", "science", "technolog", "technology", "lab",
+        "laboratori", "laboratorio", "cours", "course", "disciplin", "disciplina", "intern",
+    }
+
+    job_tokens = (set(tokenize(job_text)) - STOPWORDS) - generic_course_tokens
+    job_text_lower = job_text.lower()
+
+    # Domain vocabulary markers
+    embedded_domain = {
+        "embed", "mcu", "microcontrol", "firmwar", "hardwar", "rtos", "circuit",
+        "signal", "architectur", "dsp", "ecu", "automotiv", "can", "spi", "i2c", "tinyml",
+        "freertos", "arm", "cortex",
+    }
+    ai_domain = {
+        "ai", "ml", "learn", "neural", "deep", "data", "vision", "nlp", "model", "python",
+    }
+    backend_domain = {
+        "backend", "distribut", "system", "databas", "sql", "api", "cloud", "network", "server",
+    }
+
+    # Common course-to-technology semantic phrase bridges
+    phrase_bridges: list[tuple[str, set[str]]] = [
+        ("operating system", {"rto", "rtos", "freerto", "freertos", "os", "kernel"}),
+        ("real-time", {"rto", "rtos", "freerto", "freertos", "embed", "embedded"}),
+        ("real time", {"rto", "rtos", "freerto", "freertos", "embed", "embedded"}),
+        ("signal process", {"dsp", "signal", "filter"}),
+        ("microcontrol", {"mcu", "embed", "embedded", "firmwar", "arm"}),
+        ("cloud", {"distribut", "distributed", "backend", "aws", "docker"}),
+        ("databas", {"sql", "relat", "relational", "postgre", "postgres"}),
+    ]
+
+    scored: list[tuple[float, int, str]] = []
+    for idx, course in enumerate(coursework):
+        raw_course_tokens = set(tokenize(course))
+        c_tokens = (raw_course_tokens - STOPWORDS) - generic_course_tokens
+        if not c_tokens:
+            continue
+
+        course_lower = course.lower()
+        expanded_c_tokens = set(c_tokens)
+        for phrase, added_tokens in phrase_bridges:
+            if phrase in course_lower:
+                expanded_c_tokens.update(added_tokens)
+
+        # Direct overlap with job tokens
+        direct_matches = expanded_c_tokens & job_tokens
+        score = float(len(direct_matches) * 2.0)
+
+        # Domain overlap boost
+        if (job_tokens & embedded_domain) and (expanded_c_tokens & embedded_domain):
+            score += 3.0
+        if (job_tokens & ai_domain) and (expanded_c_tokens & ai_domain):
+            score += 3.0
+        if (job_tokens & backend_domain) and (expanded_c_tokens & backend_domain):
+            score += 3.0
+
+        if score > 0:
+            scored.append((score, idx, course))
+
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    selected = [course for _, _, course in scored[:max_courses]]
+
+    return selected if selected else coursework[:max_courses]

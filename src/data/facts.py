@@ -145,6 +145,78 @@ class CandidateFacts(BaseModel):
         """
         return [fact for fact in self.facts if fact.priority <= max_priority]
 
+    def rank_facts_for_job(
+        self,
+        job: Any,
+        track: str | None = None,
+    ) -> list[AtomicFact]:
+        """Rank and prioritize facts for a target job posting.
+
+        Enables highly relevant priority-2 facts (e.g. Asimov awards) with high keyword
+        and track match to outrank less relevant priority-1 facts when space is constrained.
+        Specifically, Asimov awards (exp_asimov_member_of_month, exp_asimov_mobile_area_of_month)
+        are strongly boosted and preserved for jobs whose track includes embedded or ai.
+
+        Weighting formula:
+        - Base priority: (4 - priority) * 2.0 (P1 = 6.0, P2 = 4.0, P3 = 2.0)
+        - Track match: +4.0 if primary track matches, +1.0 for general facts
+        - Keyword overlap: +1.5 per matched job technology/keyword
+        - Special awards boost: +5.0 for award facts when job track includes embedded/ai
+
+        Args:
+            job: Target JobPosting instance or object with technologies/keywords.
+            track: Explicit track slug (e.g. 'embedded', 'ai', 'backend').
+
+        Returns:
+            list[AtomicFact]: Facts sorted by descending composite score.
+        """
+        job_track = (track or getattr(job, "track", "") or "").lower().strip()
+        job_techs = {t.lower().strip() for t in (getattr(job, "technologies", []) or [])}
+        job_keywords = {k.lower().strip() for k in (getattr(job, "keywords", []) or [])}
+        job_tokens = job_techs | job_keywords
+        if hasattr(job, "title"):
+            job_tokens.update(str(job.title).lower().split())
+
+        target_is_embedded_or_ai = any(
+            t in job_track for t in ("embedded", "ai", "edge")
+        ) or any(
+            any(w in t for w in ("embed", "ecu", "tinyml", "edge", "ai", "ml"))
+            for t in job_tokens
+        )
+
+        award_fact_ids = {
+            "exp_asimov_awards",
+            "exp_asimov_member_of_month",
+            "exp_asimov_mobile_area_of_month",
+        }
+
+        scored: list[tuple[float, int, AtomicFact]] = []
+        for idx, fact in enumerate(self.facts):
+            # Base priority score: P1 -> 6.0, P2 -> 4.0, P3 -> 2.0
+            score = (4.0 - float(fact.priority)) * 2.0
+
+            # Track match
+            fact_tracks = {t.lower().strip() for t in fact.tracks}
+            if job_track and job_track in fact_tracks:
+                score += 4.0
+            elif "general" in fact_tracks:
+                score += 1.0
+
+            # Keyword and tag overlap
+            fact_tags = {t.lower().strip() for t in fact.tags}
+            fact_words = set(fact.text.lower().split())
+            overlap = len((fact_tags | fact_words) & job_tokens)
+            score += min(overlap * 1.5, 6.0)
+
+            # Special preservation: Asimov awards for jobs with embedded or ai
+            if fact.id in award_fact_ids and target_is_embedded_or_ai:
+                score += 5.0
+
+            scored.append((score, idx, fact))
+
+        scored.sort(key=lambda x: (-x[0], x[1]))
+        return [f for _, _, f in scored]
+
     def get_allowed_metrics(self) -> set[str]:
         """Extract a set of all verifiable quantitative metric strings across facts."""
         metrics_set: set[str] = set()

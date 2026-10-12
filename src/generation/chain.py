@@ -29,6 +29,7 @@ from src.generation.prompts import (
     build_resume_generation_prompt,
     serialize_resume_for_llm,
 )
+from src.verification.text_utils import select_relevant_coursework
 
 logger = logging.getLogger(__name__)
 
@@ -317,7 +318,8 @@ def build_fallback_tailored_resume(
             highlights.append(f"{prefix}: {edu.gpa_or_honors}")
         if edu.relevant_coursework:
             prefix_course = "Matières" if language == "fr" else ("Courses" if language == "en" else "Disciplinas")
-            highlights.append(f"{prefix_course}: {', '.join(edu.relevant_coursework[:3])}")
+            selected_courses = select_relevant_coursework(edu.relevant_coursework, job, max_courses=3)
+            highlights.append(f"{prefix_course}: {', '.join(selected_courses)}")
         education_entries.append(
             ResumeEducation(
                 institution=edu.institution,

@@ -19,6 +19,10 @@ Your mission is to craft a strictly tailored, ATS-compliant, one-page resume for
    - Any hallucinated credential will cause immediate disqualification in technical interviews.
    - If the candidate lacks a specific qualification requested in the job, highlight their closest related real competency and solid foundational coursework instead of fabricating claims.
    - GROUNDING FIRST & PRESERVE TECHNICAL FORMULATIONS: When a candidate's bullet point is already technically accurate and concrete, PRESERVE the candidate's exact technical terminology, device roles, and protocol destinations (e.g., do NOT merge or conflate distinct protocols, and do NOT insert ungrounded marketing adjectives like 'robust' or replace plain data terms like 'movement data' with corporate buzzwords).
+   - ATOMIC FACT ISOLATION (NO FACT FUSION): Never combine two facts in one sentence. A scope noun (team, department, area) must stay attached to the fact it came from.
+   - CANDIDATE GROUNDED PHRASING (NO JOB PHRASE ECHO): Do not copy phrases from the job posting. Use the candidate's own wording from the facts.
+   - RECRUITER-FACING COPY (NO PIPELINE VOCABULARY): Never mention verification, facts, or the generation process.
+   - RELEVANCE ALIGNMENT: Prefer facts whose tracks match the job track; for coursework, include only courses that map to at least one job keyword.
 
 2. THE GOOGLE XYZ ACHIEVEMENT FORMULA:
    - For all bullet points in Experience and Projects, frame achievements using Google's formula:
@@ -79,6 +83,13 @@ def build_resume_generation_prompt(
     candidate_data = candidate.model_dump(exclude_none=True)
     # SEC-01: Strip personal contact data (email, phone, links, location) to prevent sending PII to external LLM
     candidate_data.pop("contact", None)
+    # Phase C: Pre-filter coursework so LLM receives only relevant courses for target job
+    from src.verification.text_utils import select_relevant_coursework
+    for edu in candidate_data.get("education", []):
+        if "relevant_coursework" in edu and edu["relevant_coursework"]:
+            edu["relevant_coursework"] = select_relevant_coursework(
+                edu["relevant_coursework"], job, max_courses=4
+            )
     candidate_json = json.dumps(candidate_data, indent=2, ensure_ascii=False)
 
     language_directives = {
@@ -211,7 +222,8 @@ Important rules:
     return prompt
 
 
-V1_FEEDBACK_PROMPT_VERSION = "v1_feedback_v1.0"
+PROMPT_VERSION = "v1_gen_v1.1"
+V1_FEEDBACK_PROMPT_VERSION = "v1_feedback_v1.1"
 
 
 def serialize_resume_for_llm(resume: TailoredResume) -> str:
@@ -259,7 +271,10 @@ def build_regeneration_feedback_prompt(
             "2. Ajustez les verbes d'action pour respecter scrupuleusement le plafond d'impact autorisé (niveaux 1 à 4).\n"
             "3. Alignez exactement les dates, intitulés de poste et diplômes avec le profil vérifié.\n"
             "4. Maintenez l'intégralité du texte en français et respectez la contrainte stricte d'une seule page.\n"
-            "5. Renvoyez UNIQUEMENT l'objet JSON complet et corrigé respectant le schéma TailoredResume, sans bloc d'en-tête (header)."
+            "5. Renvoyez UNIQUEMENT l'objet JSON complet et corrigé respectant le schéma TailoredResume, sans bloc d'en-tête (header).\n"
+            "6. Si fusion de faits (FACT_FUSION) : Séparez en deux phrases ou ne conservez qu'un seul fait ; gardez les noms sujets (équipe/département/zone) rattachés au fait d'origine.\n"
+            "7. Si écho de l'offre (JOB_PHRASE_ECHO) : Réécrivez avec les termes factuels du candidat ; ne copiez pas les phrases de l'offre.\n"
+            "8. Supprimez tout méta-mot interne ('vérifié', 'grounded', 'pipeline') du texte."
         )
     elif language == "pt":
         intro = (
@@ -273,7 +288,10 @@ def build_regeneration_feedback_prompt(
             "2. Ajuste verbos de ação para não ultrapassar o teto de escopo verificado (níveis 1 a 4).\n"
             "3. Sincronize datas, cargos e formações exatamente com o perfil verificado.\n"
             "4. Mantenha 100% do texto no idioma solicitado e respeite o limite estrito de 1 página.\n"
-            "5. Retorne APENAS o JSON completo e corrigido segundo o esquema TailoredResume, sem bloco de cabeçalho (header)."
+            "5. Retorne APENAS o JSON completo e corrigido segundo o esquema TailoredResume, sem bloco de cabeçalho (header).\n"
+            "6. Se houver fusão de fatos (FACT_FUSION): Divida em duas frases ou mantenha apenas um fato; mantenha substantivos de sujeito (time/departamento/área) vinculados ao fato de origem.\n"
+            "7. Se houver eco de frases da vaga (JOB_PHRASE_ECHO): Reescreva usando a redação dos fatos verificados do candidato; não copie frases da vaga.\n"
+            "8. Remova meta-palavras internas do sistema ('verificado', 'grounded', 'pipeline') de todo o texto."
         )
     else:  # en (default)
         intro = (
@@ -287,7 +305,10 @@ def build_regeneration_feedback_prompt(
             "2. Lower inflated action verbs to comply with the verified scope ceiling (e.g. use 'Contributed to' or 'Developed' instead of 'Architected' or 'Led' where indicated).\n"
             "3. Align dates, job titles, and degrees exactly with the verified candidate profile.\n"
             "4. Maintain strict language consistency and the single-page budget.\n"
-            "5. Return ONLY the complete, corrected JSON object conforming to the TailoredResume schema, without contact header."
+            "5. Return ONLY the complete, corrected JSON object conforming to the TailoredResume schema, without contact header.\n"
+            "6. If FACT_FUSION is detected: Split into two sentences or keep only one fact; keep subject nouns (team/department/area) attached to the fact they come from.\n"
+            "7. If JOB_PHRASE_ECHO is detected: Rewrite using candidate's own verified fact wording; do not copy phrases from the job description.\n"
+            "8. If SUMMARY_LINT is detected: Remove internal pipeline meta-words (such as 'verified', 'grounded', 'pipeline') from free text."
         )
 
     lines: list[str] = [intro]
