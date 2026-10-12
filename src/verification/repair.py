@@ -29,6 +29,7 @@ from src.data.resume import (
     ResumeSkillCategory,
     TailoredResume,
 )
+from src.data.skills_map import reorganize_resume_skills
 from src.generation.chain import build_fallback_tailored_resume
 from src.verification.fabrication import names_match
 from src.verification.ground_truth import GroundTruth, extract_numbers
@@ -136,6 +137,9 @@ def repair_resume(
                     skills=kept_skills,
                 )
             )
+
+    if repaired_skills:
+        repaired_skills = reorganize_resume_skills(repaired_skills, language=resume.language)
 
     # If all skills were dropped, restore from profile
     if not repaired_skills and (

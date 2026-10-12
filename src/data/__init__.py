@@ -29,6 +29,12 @@ from src.data.resume import (
     format_language_entry,
     convert_typographic_quotes,
 )
+from src.data.skills_map import (
+    flag_unknown_skills,
+    get_skill_category_key,
+    get_skill_category_name,
+    reorganize_resume_skills,
+)
 from src.data.synthetic_profiles import (
     get_synthetic_fresh_grad,
     get_synthetic_researcher,
@@ -61,5 +67,9 @@ __all__ = [
     "escape_latex",
     "format_language_entry",
     "convert_typographic_quotes",
+    "flag_unknown_skills",
+    "get_skill_category_key",
+    "get_skill_category_name",
+    "reorganize_resume_skills",
 ]
 

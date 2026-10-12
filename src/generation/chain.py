@@ -23,6 +23,7 @@ from src.data.resume import (
     ResumeSkillCategory,
     TailoredResume,
 )
+from src.data.skills_map import reorganize_resume_skills
 from src.generation.prompts import (
     SYSTEM_PROMPT,
     build_resume_generation_prompt,
@@ -123,6 +124,13 @@ def parse_tailored_resume(raw_text: str) -> TailoredResume:
                 data["skills"] = skills_list
             elif "skills_categories" in data and "skills" not in data:
                 data["skills"] = data.pop("skills_categories")
+
+            if "skills" in data and isinstance(data["skills"], list):
+                lang = data.get("language", "en")
+                data["skills"] = [
+                    cat.model_dump() if hasattr(cat, "model_dump") else cat
+                    for cat in reorganize_resume_skills(data["skills"], language=lang)
+                ]
 
             # 6. Normalize certifications
             if "certifications" in data and isinstance(data["certifications"], list):
@@ -407,6 +415,8 @@ def build_fallback_tailored_resume(
                 skills=list(candidate.skills.soft_skills),
             )
         )
+
+    skill_categories = reorganize_resume_skills(skill_categories, language=language)
 
     language_entries = [
         ResumeLanguage(language=lang.language, proficiency=lang.proficiency)
