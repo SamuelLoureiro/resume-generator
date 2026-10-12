@@ -161,14 +161,18 @@ def test_format_candidate_facts(sample_candidate: CandidateProfile) -> None:
     """Test that format_candidate_facts covers all verified background sections."""
     facts = format_candidate_facts(sample_candidate)
 
-    assert "Samuel Amadeu Loureiro" in facts
-    assert "samu.loureiro23@gmail.com" in facts
-    assert "Universidade Federal de Itajubá (UNIFEI)" in facts
-    assert "Laboratório de Inteligência Computacional" in facts
-    assert "Gerador de Currículos com RAG" in facts
-    assert "LlamaIndex" in facts
-    assert "Python" in facts
-    assert "Português" in facts
+    assert sample_candidate.contact.full_name in facts
+    assert sample_candidate.contact.email in facts
+    if sample_candidate.education:
+        assert sample_candidate.education[0].institution in facts
+    if sample_candidate.experiences:
+        assert sample_candidate.experiences[0].organization in facts
+    if sample_candidate.projects:
+        assert sample_candidate.projects[0].name in facts
+    if sample_candidate.skills.programming_languages:
+        assert sample_candidate.skills.programming_languages[0] in facts
+    if sample_candidate.languages:
+        assert sample_candidate.languages[0].language in facts
 
 
 def test_format_resume_as_text(sample_tailored_resume: TailoredResume) -> None:
@@ -308,3 +312,50 @@ def test_evaluation_benchmark_run_benchmark_filtering(
     assert report_file.exists()
     assert "# 📊 RAG Pipeline Evaluation Report" in report_content
     assert "Faithfulness" in report_content
+
+
+def test_evaluation_dataset_from_directory(tmp_path: Path) -> None:
+    """Test loading test cases from directory of markdown files with frontmatter."""
+    md_file_1 = tmp_path / "01_test_job.md"
+    md_file_1.write_text(
+        "---\n"
+        "id: 'test_job_1'\n"
+        "title: 'ML Intern'\n"
+        "company: 'AI Corp'\n"
+        "language: 'en'\n"
+        "track: 'ai'\n"
+        "technologies:\n"
+        "  - 'Python'\n"
+        "---\n"
+        "We are looking for an ML Intern to build models.",
+        encoding="utf-8",
+    )
+
+    md_file_2 = tmp_path / "02_test_job_fr.md"
+    md_file_2.write_text(
+        "---\n"
+        "id: 'test_job_2'\n"
+        "title: 'Stage IA'\n"
+        "company: 'Tech France'\n"
+        "language: 'fr'\n"
+        "track: 'ai'\n"
+        "technologies:\n"
+        "  - 'Python'\n"
+        "---\n"
+        "Description du poste en français.",
+        encoding="utf-8",
+    )
+
+    dataset = EvaluationDataset.from_directory(tmp_path)
+    assert len(dataset) == 2
+    case1 = dataset.get_by_id("test_job_1")
+    assert case1 is not None
+    assert case1.title == "ML Intern"
+    assert case1.language == "en"
+    assert case1.target_track == "ai"
+    assert "build models" in case1.description
+
+    job_posting = case1.to_job_posting()
+    assert job_posting.title == "ML Intern"
+    assert "Python" in job_posting.technologies
+

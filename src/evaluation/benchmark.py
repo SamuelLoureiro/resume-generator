@@ -207,6 +207,7 @@ class EvaluationBenchmark:
         pipeline: KnowledgeBasePipeline | None = None,
         chain: ResumeGenerationChain | None = None,
         runner: EvaluationRunner | None = None,
+        force_reindex: bool = False,
     ) -> None:
         """Initialize benchmark with optional dependency injection.
 
@@ -214,25 +215,37 @@ class EvaluationBenchmark:
             pipeline: KnowledgeBasePipeline for retrieval. Defaults to a new instance.
             chain: ResumeGenerationChain for LLM generation. Defaults to Gemini chain.
             runner: EvaluationRunner for scoring. Defaults to Gemini-backed runner.
+            force_reindex: If True, forces re-indexing of knowledge base documents.
         """
         self._pipeline = pipeline
         self._chain = chain
         self._runner = runner
+        self._force_reindex = force_reindex
 
     def _get_pipeline(self) -> KnowledgeBasePipeline:
         if self._pipeline is None:
             self._pipeline = KnowledgeBasePipeline()
+            if self._force_reindex:
+                self._pipeline.setup(force_reindex=True)
         return self._pipeline
 
     def _get_chain(self) -> ResumeGenerationChain:
         if self._chain is None:
-            llm = get_gemini_llm()
+            settings = get_settings()
+            llm = get_gemini_llm(
+                model_name=settings.generation_model,
+                temperature=settings.generation_temperature,
+            )
             self._chain = ResumeGenerationChain(llm=llm)
         return self._chain
 
     def _get_runner(self) -> EvaluationRunner:
         if self._runner is None:
-            llm = get_gemini_llm()
+            settings = get_settings()
+            llm = get_gemini_llm(
+                model_name=settings.judge_model,
+                temperature=settings.judge_temperature,
+            )
             self._runner = EvaluationRunner(llm=llm)
         return self._runner
 
@@ -375,6 +388,11 @@ def main() -> None:
         default="docs/evaluation.md",
         help="Path to save the generated markdown evaluation report.",
     )
+    parser.add_argument(
+        "--reindex",
+        action="store_true",
+        help="Force reindexing of the knowledge base into ChromaDB before running the benchmark.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -384,7 +402,7 @@ def main() -> None:
 
     case_ids = [c.strip() for c in args.cases.split(",")] if args.cases else None
 
-    benchmark = EvaluationBenchmark()
+    benchmark = EvaluationBenchmark(force_reindex=args.reindex)
     results = benchmark.run_benchmark(
         dataset=dataset,
         candidate=candidate,

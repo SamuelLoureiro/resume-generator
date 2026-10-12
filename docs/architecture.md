@@ -1,74 +1,93 @@
-# Architecture — Resume Generator with RAG
+# Architecture — Resume Generator with RAG & Closed-Loop Verification
 
 ## Overview
 
-RAG-based system that generates tailored resumes for internship positions,
-combining candidate personal data with specialized knowledge on recruitment
-and resume best practices.
+A grounded, empirical RAG system that generates tailored resumes for internship positions by synthesizing verified candidate data with specialized recruitment guidelines, verified through a closed-loop post-generation verifier that eliminates hallucinations and verb inflation.
 
 ## Stack
 
-| Component       | Technology                      |
-|-----------------|---------------------------------|
-| Language        | Python 3.11+                    |
-| LLM             | Google Gemini 2.5 Flash/Pro     |
-| RAG Framework   | LlamaIndex                      |
-| Embeddings      | text-embedding-004 (Google)     |
-| Vector Store    | ChromaDB                        |
-| Output          | PDF via LaTeX (Jinja2)          |
-| Interface       | Gradio                          |
-| Testing         | pytest + RAGAS                  |
+| Component | Technology | Description |
+|---|---|---|
+| Language | Python 3.12 (3.11+) | Strict type hinting & Pydantic v2 |
+| Generator LLM | Google Gemini (`gemini-3.5-flash-lite`) | Primary generation model (temp: 0.3) |
+| Judge LLM | Google Gemini (`gemini-3.1-flash-lite`) | Independent atomic claim evaluator (temp: 0.0) |
+| RAG Framework | LlamaIndex 0.12+ | Document loading, node splitting, retriever wiring |
+| Embeddings | Google `models/gemini-embedding-001` | Dense vector embeddings for recruitment knowledge |
+| Vector Store | ChromaDB (Persistent) | Local persistent vector storage in `chroma_db/` |
+| Sparse Search | BM25 | In-memory token-level keyword search |
+| Rank Fusion | Reciprocal Rank Fusion (RRF, k=60) | Unbiased score combination across dense and sparse spaces |
+| Verification | Custom Deterministic + LLM Judge | M1 (Fabrication), M2 (Verb ladder), M4 (Keywords), M5 (Format) |
+| Output | LaTeX → PDF (Jinja2 + Tectonic) | Single-page ATS-optimized typographical output |
+| Interface | Gradio 6.28.0 | Web application with real-time PDF preview and transparency report |
+| Testing | pytest | 396 automated tests running 100% offline |
 
 ## System Flow
 
 ```
 Input:
-  candidate_profile.yaml + job description + LaTeX template
+  Candidate Profile + Candidate Facts (with Scope Ceilings) + Target Job Posting
     ↓
-Ingestion (once):
-  knowledge_base/ → SimpleDirectoryReader → SentenceSplitter → Embeddings → ChromaDB
+Knowledge Retrieval:
+  Job Query → Hybrid Search (Dense ChromaDB + BM25 Sparse) → RRF k=60 → Top-5 Chunks
     ↓
-Retrieval (per job):
-  Job query → Hybrid Search (Vector + BM25) → Top-5 relevant chunks
+Privacy Scrubbing (SEC-01):
+  Candidate contact info (email, phone, URLs, address) stripped before prompt transmission
     ↓
-Generation:
-  Prompt (candidate + job + chunks + template) → Gemini → Structured content
+Generation (Round 0):
+  System Prompt + Candidate Facts + Job Requirements + Retrieved Context → gemini-3.5-flash-lite
     ↓
-Formatting:
-  Jinja2 → .tex file → pdflatex → Final PDF
+Verification Loop (V1):
+  Deterministic checks (M1a-c, M2, M4, M5) + Isolated Claim Judge (M1d: gemini-3.1-flash-lite)
+  ├─ 0 Defects → PASS (clean@0)
+  ├─ Defects Found (Rounds 1–2) → Error-Guided Regeneration Prompt → Retry (clean@1 / clean@2)
+  └─ Residual Defects → Deterministic Repair Surgery (repair_resume)
+       ├─ Repaired cleanly → PASS (repaired)
+       └─ Residual issues persist → Grounded Deterministic Floor (fallback B0)
+    ↓
+Formatting & Rendering:
+  Jinja2 Template (resume.tex.j2) + Contact Injection → Tectonic TeX Engine → 1-Page PDF
     ↓
 Output:
-  output/resume_<company>_<date>.pdf
+  output/resume_<company>_<date>.pdf + output/resume_<company>_<date>.tex
 ```
 
 ## Directory Structure
 
 ```
 gerador_curriculos/
-├── .agents/                       # AGY customizations
+├── app.py                         # Root entrypoint for Hugging Face Spaces / Gradio
+├── pyproject.toml                 # Packaging & dependencies
+├── requirements.txt               # Frozen dependencies
+├── Dockerfile                     # Containerization with precompiled Tectonic
+├── docker-compose.yml             # Local Docker Compose setup
+├── data/
+│   ├── candidate_profile.yaml     # Protected source of truth for candidate background
+│   ├── candidate_facts.yaml       # Atomic verified facts with 4-level scope ceilings
+│   └── eval/
+│       ├── MANIFEST.sha256        # Dataset integrity hash
+│       └── dev/                   # Dev test cases across 5 technical tracks
 ├── src/
-│   ├── config.py
-│   ├── data/                      # Pydantic schemas
-│   ├── ingestion/                 # Loader + Indexer
-│   ├── retrieval/                 # Hybrid Retriever
-│   ├── generation/                # Prompts + Chain + Formatter
-│   ├── knowledge_base/            # Knowledge docs (.md)
-│   └── app.py                     # Gradio
-├── templates/                     # LaTeX template
-├── data/                          # Candidate profile + job postings
+│   ├── config.py                  # Pydantic Settings, model pinning & API guards
+│   ├── app.py                     # Gradio application & action workflows
+│   ├── data/                      # Pydantic v2 schemas (Candidate, Job, Resume, Facts)
+│   ├── ingestion/                 # Markdown loader & ChromaDB vector indexer
+│   ├── retrieval/                 # Hybrid retriever (Dense + BM25 + RRF) & pipeline
+│   ├── generation/                # Prompts, chain, LaTeX formatter, and variants
+│   │   └── variants/              # B0 (Fallback), B1 (RAG), B3 (Full KB), V1 (Verified)
+│   ├── verification/              # Deterministic checkers (M1-M5), repair, and issues layer
+│   ├── evaluation/                # Claim-level judge (M1d) & synthetic defect injection
+│   └── knowledge_base/            # 12 Markdown guides across 5 tracks
+├── templates/
+│   └── resume.tex.j2              # Multilingual Jinja2 LaTeX template
 ├── tests/
-├── notebooks/
+│   ├── golden/                    # Golden set regression checks (Amazon SDE fixture)
+│   └── ...                        # 396 offline unit and integration tests
 ├── docs/
-└── output/                        # Generated PDFs
+│   ├── architecture.md            # System architecture & stack
+│   ├── research_plan.md           # Research hypotheses and frozen decision protocol
+│   ├── decisions_log.md           # Architecture Decision Records (ADR-001 to ADR-023)
+│   ├── development_diary.md       # Chronological development diary
+│   ├── lessons.md                 # Qualitative learnings
+│   └── experiments/               # Experiment reports (E00, E01, E02, E03)
+└── output/                        # Generated PDFs and TeX files
 ```
-
-## Development Phases
-
-1. **Foundation & Data** — Setup, schemas, knowledge base
-2. **RAG Core** — Ingestion, indexing, retrieval
-3. **Generation & Formatting** — Prompts, chain, LaTeX → PDF
-4. **Interface** — Gradio app
-5. **Evaluation** — RAGAS, tuning
-6. **Portfolio & Deploy** — README, Docker, HuggingFace
-
-For details on each phase, refer to the full project plan.

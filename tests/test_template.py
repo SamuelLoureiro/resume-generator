@@ -133,3 +133,99 @@ def test_resume_template_rendering() -> None:
     assert r"\%" in rendered_latex
     assert "Deep Learning Specialization - DeepLearning.AI" in rendered_latex
     assert "English (Advanced (C1))" in rendered_latex
+
+
+def test_template_multilingual_sections() -> None:
+    """Test that templates/resume.tex.j2 renders localized section titles for PT, EN, and FR."""
+    template_path = Path("templates/resume.tex.j2")
+    env = jinja2.Environment(
+        block_start_string="<%",
+        block_end_string="%>",
+        variable_start_string="<<",
+        variable_end_string=">>",
+        comment_start_string="<#",
+        comment_end_string="#>",
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=False,
+    )
+    template = env.from_string(template_path.read_text(encoding="utf-8"))
+    resume = create_sample_tailored_resume()
+
+    # 1. Portuguese
+    resume.language = "pt"
+    rendered_pt = template.render(**resume.to_latex_context())
+    assert r"\section{Objetivo Profissional}" in rendered_pt
+    assert r"\section{Formação Acadêmica}" in rendered_pt
+    assert r"\section{Experiência Profissional}" in rendered_pt
+    assert r"\section{Projetos em Destaque}" in rendered_pt
+    assert r"\section{Habilidades Técnicas}" in rendered_pt
+    assert r"\section{Idiomas \& Certificações}" in rendered_pt
+
+    # 2. English
+    resume.language = "en"
+    rendered_en = template.render(**resume.to_latex_context())
+    assert r"\section{Professional Summary}" in rendered_en
+    assert r"\section{Education}" in rendered_en
+    assert r"\section{Work Experience}" in rendered_en
+    assert r"\section{Featured Projects}" in rendered_en
+    assert r"\section{Technical Skills}" in rendered_en
+    assert r"\section{Languages \& Certifications}" in rendered_en
+    assert r"\textbf{Technologies:}" in rendered_en
+    assert r"[View Project / Code]" in rendered_en
+
+    # 3. French
+    resume.language = "fr"
+    rendered_fr = template.render(**resume.to_latex_context())
+    assert r"\section{Profil Professionnel}" in rendered_fr
+    assert r"\section{Formation}" in rendered_fr
+    assert r"\section{Expérience Professionnelle}" in rendered_fr
+    assert r"\section{Projets Notables}" in rendered_fr
+    assert r"\section{Compétences Techniques}" in rendered_fr
+    assert r"\section{Langues \& Certifications}" in rendered_fr
+    assert r"\textbf{Technologies :}" in rendered_fr
+    assert r"[Voir le projet / Dépôt]" in rendered_fr
+
+
+def test_template_languages_certifications_conditional_headers() -> None:
+    """Test TPL-01: Section header dynamically adjusts when either languages or certifications is empty."""
+    template_path = Path("templates/resume.tex.j2")
+    env = jinja2.Environment(
+        block_start_string="<%",
+        block_end_string="%>",
+        variable_start_string="<<",
+        variable_end_string=">>",
+        comment_start_string="<#",
+        comment_end_string="#>",
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=False,
+    )
+    template = env.from_string(template_path.read_text(encoding="utf-8"))
+
+    # Case 1: Languages present, Certifications empty (EN)
+    resume_en = create_sample_tailored_resume()
+    resume_en.language = "en"
+    resume_en.certifications = []
+    rendered = template.render(**resume_en.to_latex_context())
+    assert r"\section{Languages}" in rendered
+    assert r"\section{Languages \& Certifications}" not in rendered
+    assert r"\section{Certifications}" not in rendered
+
+    # Case 2: Languages present, Certifications empty (PT)
+    resume_pt = create_sample_tailored_resume()
+    resume_pt.language = "pt"
+    resume_pt.certifications = []
+    rendered = template.render(**resume_pt.to_latex_context())
+    assert r"\section{Idiomas}" in rendered
+    assert r"\section{Idiomas \& Certificações}" not in rendered
+    assert r"\section{Certificações}" not in rendered
+
+    # Case 3: Certifications present, Languages empty (EN)
+    resume_certs = create_sample_tailored_resume()
+    resume_certs.language = "en"
+    resume_certs.languages = []
+    rendered = template.render(**resume_certs.to_latex_context())
+    assert r"\section{Certifications}" in rendered
+    assert r"\section{Languages \& Certifications}" not in rendered
+    assert r"\section{Languages}" not in rendered

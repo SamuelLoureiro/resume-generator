@@ -1,0 +1,29 @@
+# ==============================================================================
+# Resume RAG Generator — Docker Compose
+# ==============================================================================
+# Usage:
+#   1. Set your GOOGLE_API_KEY in .env
+#   2. Run: docker compose up --build
+#   3. Open http://localhost:7860
+# ==============================================================================
+
+services:
+  resume-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: resume_rag_generator
+    ports:
+      - "7860:7860"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-models/gemini-flash-lite-latest}
+      - GEMINI_EMBEDDING_MODEL=${GEMINI_EMBEDDING_MODEL:-models/gemini-embedding-001}
+    volumes:
+      # Persist generated resumes locally
+      - ./output:/app/output
+      # Persist ChromaDB vector index locally
+      - ./chroma_db:/app/chroma_db
+      # Mount candidate profile for live editing without container rebuild
+      - ./data/candidate_profile.yaml:/app/data/candidate_profile.yaml:ro
+    restart: unless-stopped

@@ -74,3 +74,5 @@ output/*
 # Operating System
 .DS_Store
 Thumbs.db
+runs/
+blind/

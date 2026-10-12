@@ -60,7 +60,7 @@ def get_embedding_model(
     settings = get_settings()
     resolved_model = model_name or settings.gemini_embedding_model
     if "text-embedding-004" in resolved_model:
-        resolved_model = "models/gemini-embedding-001"
+        resolved_model = settings.gemini_embedding_model
     resolved_key = api_key or settings.google_api_key
 
     return GeminiEmbedding(
@@ -72,12 +72,14 @@ def get_embedding_model(
 def build_chroma_vector_store(
     persist_dir: Path | str | None = None,
     collection_name: str = CHROMA_COLLECTION_NAME,
+    recreate: bool = False,
 ) -> ChromaVectorStore:
     """Create and configure a ChromaDB-backed vector store.
 
     Args:
         persist_dir: Directory for ChromaDB persistence. If None, loaded from settings.
         collection_name: Name of the ChromaDB collection to use.
+        recreate: If True, deletes any existing collection with this name first.
 
     Returns:
         ChromaVectorStore: Configured LlamaIndex ChromaDB vector store adapter.
@@ -89,6 +91,12 @@ def build_chroma_vector_store(
     persist_path.mkdir(parents=True, exist_ok=True)
 
     chroma_client = chromadb.PersistentClient(path=str(persist_path))
+    if recreate:
+        try:
+            chroma_client.delete_collection(name=collection_name)
+            logger.info("Deleted existing ChromaDB collection '%s' for recreation.", collection_name)
+        except Exception:
+            pass
     collection = chroma_client.get_or_create_collection(name=collection_name)
 
     logger.info(
@@ -130,7 +138,11 @@ class KnowledgeBaseIndexer:
         self.persist_dir = Path(persist_dir) if persist_dir else Path(get_settings().chroma_persist_dir)
         self.collection_name = collection_name
 
-    def build_index(self, documents: list[Document]) -> VectorStoreIndex:
+    def build_index(
+        self,
+        documents: list[Document],
+        recreate: bool = False,
+    ) -> VectorStoreIndex:
         """Chunk, embed, and persist documents into ChromaDB.
 
         Applies SentenceSplitter to all documents, generates embeddings for
@@ -138,6 +150,7 @@ class KnowledgeBaseIndexer:
 
         Args:
             documents: List of LlamaIndex Document instances to index.
+            recreate: If True, resets/recreates the vector store collection first.
 
         Returns:
             VectorStoreIndex: Populated index backed by the ChromaDB vector store.
@@ -149,14 +162,16 @@ class KnowledgeBaseIndexer:
             raise ValueError("Cannot build index from an empty document list.")
 
         logger.info(
-            "Starting indexing: %d documents into collection '%s'",
+            "Starting indexing: %d documents into collection '%s' (recreate=%s)",
             len(documents),
             self.collection_name,
+            recreate,
         )
 
         vector_store = build_chroma_vector_store(
             persist_dir=self.persist_dir,
             collection_name=self.collection_name,
+            recreate=recreate,
         )
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
         splitter = build_sentence_splitter()

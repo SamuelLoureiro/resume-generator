@@ -65,16 +65,24 @@ class JobPosting(BaseModel):
         Returns:
             str: Semantic query string.
         """
-        parts = [f"Job: {self.title} at {self.company}"]
+        title_str = self.title.strip() if self.title else "Internship"
+        comp_str = f" at {self.company.strip()}" if self.company and self.company.strip() else ""
+        parts = [f"Job: {title_str}{comp_str}"]
 
         if self.technologies:
-            parts.append(f"Technologies: {', '.join(self.technologies)}")
+            clean_techs = [t.strip() for t in self.technologies if t and t.strip()]
+            if clean_techs:
+                parts.append(f"Technologies: {', '.join(clean_techs)}")
 
         if self.requirements:
-            parts.append(f"Requirements: {'; '.join(self.requirements[:5])}")
+            clean_reqs = [r.strip() for r in self.requirements if r and r.strip()]
+            if clean_reqs:
+                parts.append(f"Requirements: {'; '.join(clean_reqs[:5])}")
 
         if self.keywords:
-            parts.append(f"Keywords: {', '.join(self.keywords[:5])}")
+            clean_keys = [k.strip() for k in self.keywords if k and k.strip()]
+            if clean_keys:
+                parts.append(f"Keywords: {', '.join(clean_keys[:5])}")
 
         return "\n".join(parts)
 

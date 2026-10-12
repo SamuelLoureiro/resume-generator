@@ -11,7 +11,7 @@ from typing import Any
 import gradio as gr
 from llama_index.core.schema import NodeWithScore
 
-from src.config import get_settings
+from src.config import ALLOWED_GENERATION_MODELS, get_settings
 from src.data.candidate import CandidateProfile
 from src.data.job_posting import JobPosting
 from src.data.resume import TailoredResume
@@ -20,6 +20,7 @@ from src.generation.chain import (
     get_gemini_llm,
 )
 from src.generation.formatter import ResumeFormatter
+from src.generation.variants.v1_verified import V1Trace, generate_v1
 from src.retrieval.pipeline import KnowledgeBasePipeline
 from src.retrieval.retriever import format_retrieved_context
 
@@ -278,8 +279,9 @@ def generate_resume_action(
     work_model: str,
     job_description: str,
     technologies: str,
-    gemini_model: str = "gemini-2.5-flash",
-    temperature: float = 0.2,
+    resume_language: str = "auto",
+    gemini_model: str | None = None,
+    temperature: float | None = None,
     top_k: int = 5,
     force_reindex: bool = False,
     pipeline: KnowledgeBasePipeline | None = None,
@@ -393,37 +395,81 @@ def generate_resume_action(
         guidelines_context = format_retrieved_context(retrieved_nodes)
         transparency_report = format_rag_transparency_report(job=job, retrieved_nodes=retrieved_nodes)
 
-        # 5. LLM Generation: Structured TailoredResume
-        logger.info("Invoking generation chain (model=%s, temp=%.2f)...", gemini_model, temperature)
-        if chain is None:
-            llm = get_gemini_llm(model_name=gemini_model, temperature=temperature)
-            active_chain = ResumeGenerationChain(llm=llm)
-        else:
-            active_chain = chain
+        # 5. LLM Generation: Structured TailoredResume via Verified V1 Loop
+        selected_model = gemini_model or settings.generation_model
+        selected_temp = temperature if temperature is not None else settings.generation_temperature
+        trace: V1Trace | None = None
 
-        tailored_resume = active_chain.generate(
-            candidate=candidate,
-            job=job,
-            retrieved_guidelines=guidelines_context,
-        )
+        if chain is not None:
+            # Direct chain injection (e.g. mock test suite)
+            logger.info("Invoking injected generation chain (lang=%s)...", resume_language)
+            tailored_resume = chain.generate(
+                candidate=candidate,
+                job=job,
+                retrieved_guidelines=guidelines_context,
+                language=resume_language,
+            )
+        else:
+            # Production default: full V1 verifier loop (error-guided regeneration + deterministic repair)
+            logger.info(
+                "Invoking V1 Verified Generator (model=%s, temp=%.2f, lang=%s)...",
+                selected_model,
+                selected_temp,
+                resume_language,
+            )
+            active_chain = ResumeGenerationChain(
+                llm=get_gemini_llm(model_name=selected_model, temperature=selected_temp)
+            )
+            tailored_resume, trace = generate_v1(
+                candidate=candidate,
+                job=job,
+                pipeline=active_pipeline,
+                chain=active_chain,
+                top_k=int(top_k),
+                language=resume_language,
+            )
 
         # 6. Formatting & LaTeX PDF Compilation
         logger.info("Rendering LaTeX and compiling with Tectonic...")
         active_formatter = formatter if formatter is not None else ResumeFormatter()
-        rendered_tex = active_formatter.render_latex(tailored_resume)
-        pdf_path = active_formatter.compile_pdf(tailored_resume, keep_tex=True)
+        rendered_tex = active_formatter.render_latex(tailored_resume, contact=candidate.contact)
+        pdf_path = active_formatter.compile_pdf(tailored_resume, keep_tex=True, contact=candidate.contact)
         tex_path = pdf_path.with_suffix(".tex")
 
         elapsed = time.time() - start_time
         pdf_size_kb = pdf_path.stat().st_size / 1024
 
-        status_msg = f"🟢 **Success!** Tailored resume generated and compiled in **{elapsed:.1f}s**."
+        lang_names = {"pt": "Português", "en": "Inglês", "fr": "Francês"}
+        active_lang_name = lang_names.get(tailored_resume.language, tailored_resume.language.upper())
+
+        if trace is not None:
+            path_labels = {
+                "clean@0": "🛡️ Verified Clean (Round 0 — 0 defects)",
+                "clean@1": "🛡️ Verified Clean (Retry 1 — corrected via feedback)",
+                "clean@2": "🛡️ Verified Clean (Retry 2 — corrected via feedback)",
+                "repaired": "🔧 Deterministically Repaired (residual defects purged)",
+                "fallback": "📦 Deterministic Fallback Floor (B0)",
+            }
+            res_label = path_labels.get(trace.final_path, trace.final_path)
+            status_msg = f"🟢 **Success!** Tailored resume generated in **{active_lang_name}** | **{res_label}** | Compiled in **{elapsed:.1f}s**."
+            verification_line = f"- **Verification Path:** `{trace.final_path}` ({trace.total_rounds} rounds, {trace.repair_actions_count} repair actions)\n"
+            transparency_report += (
+                f"\n\n---\n### 🛡️ Verification & Faithfulness Summary\n"
+                f"- **Resolution Path:** `{trace.final_path}`\n"
+                f"- **Rounds Completed:** {trace.total_rounds}\n"
+                f"- **Repair Surgery Actions:** {trace.repair_actions_count}\n"
+            )
+        else:
+            status_msg = f"🟢 **Success!** Tailored resume generated in **{active_lang_name}** and compiled in **{elapsed:.1f}s**."
+            verification_line = ""
+
         pdf_info_md = f"""### 📄 Resume Compiled Successfully!
 - **File:** `{pdf_path.name}`
 - **Size:** `{pdf_size_kb:.1f} KB`
 - **Candidate:** **{tailored_resume.header.full_name}**
 - **Target Role:** **{tailored_resume.target_job_title}** @ **{tailored_resume.target_company}**
-- **Format:** Strict 1-Page PDF (ATS & Recruiter Optimized)
+- **Language:** **{active_lang_name} ({tailored_resume.language.upper()})**
+{verification_line}- **Format:** Strict 1-Page PDF (ATS & Recruiter Optimized)
 - **Compiler:** Tectonic Standalone TeX Engine
 """
         new_history = get_history_table_data(output_dir=pdf_path.parent)
@@ -517,13 +563,23 @@ AI-powered, ATS-optimized, 1-page resume generator combining your verified backg
                 with gr.Row():
                     location_input = gr.Textbox(
                         label="Location",
-                        placeholder="e.g. São Paulo, SP",
+                        placeholder="e.g. São Paulo, SP or Brest, France",
                         value="São Paulo, SP",
                     )
                     work_model_input = gr.Dropdown(
                         choices=["Hybrid", "Remote", "On-site"],
                         value="Hybrid",
                         label="Work Model",
+                    )
+                    language_dropdown = gr.Dropdown(
+                        choices=[
+                            ("Automático (detectar da vaga)", "auto"),
+                            ("Português (PT-BR)", "pt"),
+                            ("Inglês (EN)", "en"),
+                            ("Francês (FR)", "fr"),
+                        ],
+                        value="auto",
+                        label="Idioma do Currículo / Language",
                     )
 
                 job_desc_input = gr.Textbox(
@@ -548,21 +604,15 @@ AI-powered, ATS-optimized, 1-page resume generator combining your verified backg
 
                 with gr.Accordion("⚙️ Advanced RAG & LLM Settings", open=False):
                     model_dropdown = gr.Dropdown(
-                        choices=[
-                            "models/gemini-flash-lite-latest",
-                            "models/gemini-3.8-flash",
-                            "gemini-2.5-flash",
-                            "gemini-2.5-pro",
-                            "models/gemini-flash-latest",
-                        ],
-                        value=settings.gemini_model,
+                        choices=ALLOWED_GENERATION_MODELS,
+                        value=settings.generation_model,
                         allow_custom_value=True,
                         label="Gemini LLM Model",
                     )
                     temp_slider = gr.Slider(
                         minimum=0.0,
                         maximum=1.0,
-                        value=settings.gemini_temperature,
+                        value=settings.generation_temperature,
                         step=0.05,
                         label="LLM Temperature (Low = Deterministic)",
                     )
@@ -662,6 +712,7 @@ AI-powered, ATS-optimized, 1-page resume generator combining your verified backg
                 work_model_input,
                 job_desc_input,
                 tech_input,
+                language_dropdown,
                 model_dropdown,
                 temp_slider,
                 top_k_slider,

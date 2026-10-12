@@ -102,8 +102,8 @@ class HybridResumeRetriever:
         self,
         index: VectorStoreIndex,
         nodes: list[BaseNode] | None = None,
-        similarity_top_k: int = 5,
-        bm25_top_k: int = 5,
+        similarity_top_k: int = 8,
+        bm25_top_k: int = 8,
     ) -> None:
         """Initialize HybridResumeRetriever.
 

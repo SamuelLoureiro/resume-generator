@@ -18,6 +18,9 @@ EXPECTED_HR_RECRUITMENT = {
     "03_soft_skills_and_competitive_differentiators.md",
     "04_valuing_academic_experience_and_projects.md",
     "05_adaptation_by_technical_track.md",
+    "06_data_engineering_internships.md",
+    "07_systems_and_core_swe_internships.md",
+    "08_embedded_systems_and_edge_ai.md",
 }
 
 

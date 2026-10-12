@@ -34,6 +34,10 @@ class EvaluationTestCase(BaseModel):
     location: str = Field(default="São Paulo, SP", description="Job location")
     work_model: str = Field(default="Hybrid", description="Work modality")
     target_track: str = Field(default="General", description="Engineering track")
+    language: str = Field(default="pt", description="Language of the job posting")
+    track: str | None = Field(default=None, description="Canonical track slug")
+    source_url: str | None = Field(default=None, description="Posting URL or source")
+    date_collected: str | None = Field(default=None, description="Date collected")
     technologies: list[str] = Field(default_factory=list, description="Requested technologies")
     expected_focus: str = Field(default="", description="Key focus areas for matching")
     ground_truth_criteria: list[str] = Field(
@@ -41,6 +45,32 @@ class EvaluationTestCase(BaseModel):
         description="Factual grounding constraints to verify",
     )
     description: str = Field(..., description="Full job announcement description")
+
+    @classmethod
+    def from_markdown_file(cls, path: str | Path) -> EvaluationTestCase:
+        """Parse an evaluation job posting from a markdown file with YAML frontmatter.
+
+        Args:
+            path: Path to the markdown file.
+
+        Returns:
+            EvaluationTestCase: Parsed and validated test case.
+        """
+        file_path = Path(path)
+        content = file_path.read_text(encoding="utf-8")
+        parts = content.split("---", 2)
+        if len(parts) < 3:
+            raise ValueError(
+                f"Invalid markdown format at {file_path}. Expected YAML frontmatter between '---'."
+            )
+        metadata = yaml.safe_load(parts[1]) or {}
+        body = parts[2].strip()
+        metadata["description"] = body
+        if "track" in metadata and "target_track" not in metadata:
+            metadata["target_track"] = metadata["track"]
+        if "id" not in metadata:
+            metadata["id"] = file_path.stem
+        return cls.model_validate(metadata)
 
     def to_job_posting(self) -> JobPosting:
         """Convert test case to a JobPosting instance for pipeline execution.
@@ -100,6 +130,24 @@ class EvaluationDataset(BaseModel):
             )
 
         return cls.model_validate(data)
+
+    @classmethod
+    def from_directory(cls, dir_path: str | Path) -> EvaluationDataset:
+        """Load all evaluation test cases from markdown files in a directory.
+
+        Args:
+            dir_path: Directory path containing .md files with YAML frontmatter.
+
+        Returns:
+            EvaluationDataset: Dataset containing all parsed test cases sorted by filename.
+        """
+        path = Path(dir_path)
+        if not path.exists() or not path.is_dir():
+            raise FileNotFoundError(f"Evaluation directory not found: {path}")
+
+        md_files = sorted(path.glob("*.md"))
+        cases = [EvaluationTestCase.from_markdown_file(p) for p in md_files]
+        return cls(test_cases=cases)
 
     def get_by_id(self, case_id: str) -> EvaluationTestCase | None:
         """Retrieve a test case by its unique ID.

@@ -3,8 +3,61 @@
 from __future__ import annotations
 
 import re
-from typing import Any
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, Literal
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+ResumeLanguageCode = Literal["pt", "en", "fr"]
+
+SECTION_LABELS: dict[str, dict[str, str]] = {
+    "pt": {
+        "objective": "Objetivo Profissional",
+        "education": "Formação Acadêmica",
+        "experience": "Experiência Profissional",
+        "projects": "Projetos em Destaque",
+        "skills": "Habilidades Técnicas",
+        "languages_certs": "Idiomas & Certificações",
+        "languages_only": "Idiomas",
+        "certifications_only": "Certificações",
+        "technologies": "Tecnologias:",
+        "stack": "Stack:",
+        "view_project": "[Ver Projeto / Repositório]",
+        "languages": "Idiomas:",
+        "certifications": "Certificações:",
+        "present": "Presente",
+    },
+    "en": {
+        "objective": "Professional Summary",
+        "education": "Education",
+        "experience": "Work Experience",
+        "projects": "Featured Projects",
+        "skills": "Technical Skills",
+        "languages_certs": "Languages & Certifications",
+        "languages_only": "Languages",
+        "certifications_only": "Certifications",
+        "technologies": "Technologies:",
+        "stack": "Stack:",
+        "view_project": "[View Project / Code]",
+        "languages": "Languages:",
+        "certifications": "Certifications:",
+        "present": "Present",
+    },
+    "fr": {
+        "objective": "Profil Professionnel",
+        "education": "Formation",
+        "experience": "Expérience Professionnelle",
+        "projects": "Projets Notables",
+        "skills": "Compétences Techniques",
+        "languages_certs": "Langues & Certifications",
+        "languages_only": "Langues",
+        "certifications_only": "Certifications",
+        "technologies": "Technologies :",
+        "stack": "Stack :",
+        "view_project": "[Voir le projet / Dépôt]",
+        "languages": "Langues :",
+        "certifications": "Certifications :",
+        "present": "Présent",
+    },
+}
 
 
 def escape_latex(text: str) -> str:
@@ -66,13 +119,24 @@ class ResumeHeader(BaseModel):
 
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
 
-    full_name: str = Field(..., description="Candidate full name")
-    email: str = Field(..., description="Email address")
-    phone: str = Field(..., description="Phone number")
-    location: str = Field(..., description="Location")
+    full_name: str = Field(default="", description="Candidate full name")
+    email: str = Field(default="", description="Email address")
+    phone: str = Field(default="", description="Phone number")
+    location: str = Field(default="", description="Location")
     linkedin_url: str | None = Field(default=None, description="LinkedIn URL")
     github_url: str | None = Field(default=None, description="GitHub URL")
     portfolio_url: str | None = Field(default=None, description="Portfolio URL")
+
+    @field_validator("linkedin_url", "github_url", "portfolio_url", mode="before")
+    @classmethod
+    def ensure_url_scheme(cls, v: Any) -> Any:
+        """Prepend https:// if URL is provided without protocol scheme."""
+        if isinstance(v, str) and v.strip():
+            cleaned = v.strip()
+            if not cleaned.startswith(("http://", "https://")):
+                return f"https://{cleaned}"
+            return cleaned
+        return v
 
 
 class ResumeEducation(BaseModel):
@@ -148,6 +212,17 @@ class ResumeProject(BaseModel):
         default_factory=list,
         description="Action bullets demonstrating technical competence",
     )
+
+    @field_validator("url", mode="before")
+    @classmethod
+    def ensure_url_scheme(cls, v: Any) -> Any:
+        """Prepend https:// if URL is provided without protocol scheme."""
+        if isinstance(v, str) and v.strip():
+            cleaned = v.strip()
+            if not cleaned.startswith(("http://", "https://")):
+                return f"https://{cleaned}"
+            return cleaned
+        return v
 
 
 class ResumeSkillCategory(BaseModel):
@@ -236,6 +311,10 @@ class TailoredResume(BaseModel):
         default_factory=list,
         description="Certifications list",
     )
+    language: ResumeLanguageCode = Field(
+        default="pt",
+        description="Language of the resume (pt, en, fr)",
+    )
 
     def to_latex_context(self) -> dict[str, Any]:
         """Convert resume to a dictionary with all strings escaped for LaTeX.
@@ -244,4 +323,7 @@ class TailoredResume(BaseModel):
             dict[str, Any]: Dictionary ready to be passed to Jinja2 LaTeX template.
         """
         raw_dict = self.model_dump()
-        return _deep_escape(raw_dict)
+        escaped = _deep_escape(raw_dict)
+        labels = SECTION_LABELS.get(self.language, SECTION_LABELS["pt"])
+        escaped["labels"] = _deep_escape(labels)
+        return escaped

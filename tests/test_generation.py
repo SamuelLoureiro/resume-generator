@@ -28,6 +28,8 @@ from src.data.resume import (
 )
 from src.generation.chain import (
     ResumeGenerationChain,
+    build_fallback_tailored_resume,
+    detect_language_from_text,
     extract_json_payload,
     parse_tailored_resume,
 )
@@ -221,11 +223,31 @@ def test_build_resume_generation_prompt(
         retrieved_guidelines=guidelines,
     )
 
-    assert "Lucas Rocha" in prompt
+    # Core academic & technical details must be present
+    assert "University of São Paulo" in prompt
+    assert "AI Lab USP" in prompt
     assert "DeepMind Technologies" in prompt
     assert "Machine Learning Engineering Intern" in prompt
     assert "Guideline 1: XYZ Formula" in prompt
     assert "TailoredResume" in prompt
+
+
+def test_contact_info_not_leaked_in_prompt(
+    sample_candidate: CandidateProfile,
+    sample_job: JobPosting,
+) -> None:
+    """Verify SEC-01: Candidate contact details are never serialized into LLM prompts."""
+    prompt = build_resume_generation_prompt(
+        candidate=sample_candidate,
+        job=sample_job,
+    )
+    # Personal contact info must NEVER be present in LLM prompt
+    assert '"contact":' not in prompt
+    assert sample_candidate.contact.full_name not in prompt
+    assert sample_candidate.contact.email not in prompt
+    assert sample_candidate.contact.phone not in prompt
+    assert sample_candidate.contact.location not in prompt
+    assert sample_candidate.contact.linkedin_url not in prompt
 
 
 # ---------------------------------------------------------------------------
@@ -341,3 +363,160 @@ def test_resume_formatter_compile_pdf_with_tectonic(
     # Verify intermediate .tex was kept
     tex_path = tmp_path / "test_lucas_resume.tex"
     assert tex_path.exists()
+
+
+def test_detect_language_from_text() -> None:
+    """Test heuristic language detection across Portuguese, English, and French job postings."""
+    # French
+    french_text = "Stage Ingénieur Développement Logiciel. Missions: concevoir des applications, profil recherché avec compétences en Python."
+    assert detect_language_from_text(french_text) == "fr"
+
+    # Portuguese
+    portuguese_text = "Vaga de Estágio em Desenvolvimento de Software. Requisitos: cursando Ciência da Computação, conhecimento em Python."
+    assert detect_language_from_text(portuguese_text) == "pt"
+
+    # English
+    english_text = "Software Engineering Internship. Responsibilities: build distributed systems. Requirements: experience with Python and Docker."
+    assert detect_language_from_text(english_text) == "en"
+
+
+def test_build_resume_generation_prompt_multilingual(
+    sample_candidate: CandidateProfile,
+    sample_job: JobPosting,
+) -> None:
+    """Test that prompt includes strict language mandates and 1-page budget."""
+    prompt_fr = build_resume_generation_prompt(
+        candidate=sample_candidate,
+        job=sample_job,
+        language="fr",
+    )
+    assert "Consigne de Langue Impérative: Français (FR)" in prompt_fr
+    assert "GÉNÉREZ 100% DU CONTENU EN FRANÇAIS" in prompt_fr
+    assert "Strict 1-Page Layout Budget" in prompt_fr
+
+    prompt_en = build_resume_generation_prompt(
+        candidate=sample_candidate,
+        job=sample_job,
+        language="en",
+    )
+    assert "Target Language Mandate: English (EN)" in prompt_en
+    assert "GENERATE 100% OF THE CONTENT IN ENGLISH" in prompt_en
+
+    prompt_pt = build_resume_generation_prompt(
+        candidate=sample_candidate,
+        job=sample_job,
+        language="pt",
+    )
+    assert "Mandato de Idioma: Português (PT-BR)" in prompt_pt
+    assert "GERE 100% DO CONTEÚDO EM PORTUGUÊS" in prompt_pt
+
+
+def test_build_fallback_tailored_resume_multilingual(
+    sample_candidate: CandidateProfile,
+    sample_job: JobPosting,
+) -> None:
+    """Test fallback resume generation produces correctly localized fields in PT, EN, and FR."""
+    # French
+    fb_fr = build_fallback_tailored_resume(sample_candidate, sample_job, language="fr")
+    assert fb_fr.language == "fr"
+    assert "stage" in fb_fr.objective_or_summary.lower()
+    assert any(c.category_name == "Langages de programmation" for c in fb_fr.skills)
+    assert any(c.category_name == "Frameworks et bibliothèques" for c in fb_fr.skills)
+
+    # English
+    fb_en = build_fallback_tailored_resume(sample_candidate, sample_job, language="en")
+    assert fb_en.language == "en"
+    assert "internship" in fb_en.objective_or_summary.lower()
+    assert any(c.category_name == "Programming Languages" for c in fb_en.skills)
+
+    # Portuguese
+    fb_pt = build_fallback_tailored_resume(sample_candidate, sample_job, language="pt")
+    assert fb_pt.language == "pt"
+    assert "estágio" in fb_pt.objective_or_summary.lower()
+    assert any(c.category_name == "Linguagens de Programação" for c in fb_pt.skills)
+
+
+def test_resume_generation_chain_passes_language(
+    sample_candidate: CandidateProfile,
+    sample_job: JobPosting,
+    sample_tailored_resume: TailoredResume,
+) -> None:
+    """Test that ResumeGenerationChain attaches the target language to the generated resume."""
+    mock_llm = MagicMock()
+    mock_response = MagicMock()
+    mock_response.message.content = sample_tailored_resume.model_dump_json()
+    mock_llm.chat.return_value = mock_response
+
+    chain = ResumeGenerationChain(llm=mock_llm)
+    result = chain.generate(
+        candidate=sample_candidate,
+        job=sample_job,
+        language="fr",
+    )
+    assert result.language == "fr"
+
+
+def test_resume_formatter_compiles_french_resume(
+    sample_tailored_resume: TailoredResume,
+    tmp_path: Path,
+) -> None:
+    """Test that French characters and labels compile into a valid PDF without LaTeX errors."""
+    sample_tailored_resume.language = "fr"
+    sample_tailored_resume.objective_or_summary = (
+        "Étudiant ingénieur en informatique spécialisé en systèmes interactifs et IA, "
+        "recherchant un stage de 6 mois pour concevoir des solutions performantes."
+    )
+    formatter = ResumeFormatter(output_dir=tmp_path)
+    pdf_path = formatter.compile_pdf(
+        resume=sample_tailored_resume,
+        output_filename="test_french_resume.pdf",
+        keep_tex=True,
+    )
+    assert pdf_path.exists()
+    assert pdf_path.stat().st_size > 1000
+
+
+def test_chain_generates_resume_with_verified_contact(
+    sample_candidate: CandidateProfile,
+    sample_job: JobPosting,
+    sample_tailored_resume: TailoredResume,
+) -> None:
+    """Verify that ResumeGenerationChain injects verified candidate contact details into output header."""
+    mock_llm = MagicMock()
+    # Simulate LLM omitting or outputting dummy contact
+    resume_dict = sample_tailored_resume.model_dump()
+    resume_dict["header"] = {
+        "full_name": "Untrusted Model Hallucination",
+        "email": "hallucinated@example.com",
+        "phone": "+1 000 000 0000",
+        "location": "Nowhere",
+    }
+    mock_response = MagicMock()
+    mock_response.message.content = json.dumps(resume_dict)
+    mock_llm.chat.return_value = mock_response
+
+    chain = ResumeGenerationChain(llm=mock_llm)
+    result = chain.generate(candidate=sample_candidate, job=sample_job)
+
+    # SEC-01: Header is deterministically overwritten with candidate ground-truth contact
+    assert result.header.full_name == sample_candidate.contact.full_name
+    assert result.header.email == sample_candidate.contact.email
+    assert result.header.phone == sample_candidate.contact.phone
+    assert result.header.location == sample_candidate.contact.location
+    assert result.header.linkedin_url == sample_candidate.contact.linkedin_url
+
+
+def test_formatter_render_latex_with_contact_override(
+    sample_tailored_resume: TailoredResume,
+    sample_candidate: CandidateProfile,
+) -> None:
+    """Test render-time injection of ContactInfo in ResumeFormatter."""
+    formatter = ResumeFormatter()
+    # Force resume header to be different
+    sample_tailored_resume.header.full_name = "Placeholder"
+    sample_tailored_resume.header.email = "placeholder@example.com"
+
+    rendered = formatter.render_latex(sample_tailored_resume, contact=sample_candidate.contact)
+    assert sample_candidate.contact.full_name in rendered
+    assert sample_candidate.contact.email in rendered
+    assert "Placeholder" not in rendered

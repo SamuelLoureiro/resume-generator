@@ -8,193 +8,246 @@
 
 contact:
   full_name: "Samuel Amadeu Loureiro"
-  email: "samu.loureiro23@gmail.com"
-  phone: "+33 743528487"
-  location: "Brest - France"
-  linkedin_url: "www.linkedin.com/in/samuelamadeuloureiro"
+  email: "s25amadeu@enib.fr"
+  phone: "+33 7 43 52 84 87"
+  location: "Brest/Plouzané, France"
+  linkedin_url: "https://www.linkedin.com/in/samuelamadeuloureiro"
   github_url: "https://github.com/SamuelLoureiro"
   portfolio_url: ""
 
 # Resumo ou bio geral (opcional: o RAG adaptará o objetivo para cada vaga)
 summary: >-
-  Estudante de graduação com forte interesse em Inteligência Artificial,
-  Engenharia de Machine Learning e desenvolvimento de software. Experiência
-  prática em projetos de Processamento de Linguagem Natural (PLN), sistemas RAG
-  e análise de dados com Python.
+  Engineering and Master SIIA student specializing in Interactive Systems (XR), AI, and HCI. 
+  Passionate about autonomous agents, generative models (LLM/VLM), and user experience in 3D environments, 
+  with a strong background in software development, embedded systems, and data science.
 
 # Formação acadêmica (graduação atual, cursos técnicos ou anteriores)
 education:
-  - institution: "Universidade Federal de Itajubá (UNIFEI)"
-    degree: "Bacharelado em Engenharia de Computação"
-    start_date: "03/2022"
-    end_date: "12/2027"
-    current: true
-    gpa_or_honors: "Coeficiente de Rendimento: 8.5 / 10.0"
-    relevant_coursework:
-      - "Estruturas de Dados e Algoritmos"
-      - "Inteligência Artificial e Aprendizado de Máquina"
-      - "Sistemas de Bancos de Dados"
-      - "Cálculo e Álgebra Linear Aplicada à Computação"
-    highlights:
-      - "Bolsista de Iniciação Científica em Inteligência Artificial"
-      - "Monitor da disciplina de Introdução à Ciência da Computação"
-  - institution: "École Nationale d'Ingénieurs de Brest (ENIB)"
-    degree: " Ingénieur système généraliste en électronique, informatique et mécatronique (Bac +5)."
-    start_date: "09/2025"
-    end_date: "07/2027"
-    current: true
-    gpa_or_honors: "Média Final: 17 / 20.0"
-    relevant_coursework:
-      - "Matemática Avançada"
-      - "Física e Química Aplicadas"
-      - "Programação Básica em Python"
-    highlights:
-      - "Participação em Olimpíadas de Matemática e Informática"
-      - "Representante estudantil em projetos de tecnologia e inovação"
-  - institution: "Master co-accrédité avec l’ENIB, l’UBO, l’ENSTA-Bretagne 1 et l’IMT Atlantique."
-    degree: "Masters Système Interactifs Intelligents et Autonomes"
+  - institution: "UBO, ENIB, ENSTA Bretagne, IMT Atlantique"
+    degree: "Master in Computer Science: Intelligent and Autonomous Interactive Systems (SIIA)"
     start_date: "09/2026"
-    end_date: "07/2027"
+    end_date: "08/2027"
     current: true
     gpa_or_honors: ""
     relevant_coursework:
-      - "Programação em C/C++ e Python"
-      - "Redes de Computadores e Segurança da Informação"
-      - "Desenvolvimento Web e Mobile"
+      - "Interactive Machine Learning and Deep Learning"
+      - "Collective Intelligence and Multiagent Systems"
+      - "Augmented and Virtual Reality"
+      - "Modelling of Virtual Environments"
+      - "Modelling, Design and Ergonomics for Interactive Systems"
+    highlights: []
+    
+  - institution: "École Nationale d'Ingénieurs de Brest (ENIB)"
+    degree: "Engineering Degree (Diplôme d'Ingénieur - Bac +5)"
+    start_date: "09/2025"
+    end_date: "08/2027"
+    current: true
+    gpa_or_honors: ""
+    relevant_coursework:
+      - "Network and Systems Communication"
+      - "Interactive Applications Design"
+      - "Microprocessors and Embedded Systems"
+    highlights: []
+    
+  - institution: "Universidade Federal de Itajubá (UNIFEI)"
+    degree: "Bachelor in Computer Engineering"
+    start_date: "03/2022"
+    end_date: "12/2027"
+    current: true
+    gpa_or_honors: ""
+    relevant_coursework:
+      - "Data Structures and Algorithms"
+      - "Software Engineering"
+      - "TinyML"
+      - "Applied AI"
+      - "Databases"
+      - "Algorithm Analysis"
+      - "Graph Theory"
     highlights:
-      - "Projeto de conclusão de curso premiado em feira tecnológica estadual"
-      - "Participação em competições de programação e robótica"
+      - "Extension Course: Introduction to Artificial Intelligence (SOFTEX and Huawei)"
 
 # Experiências profissionais, acadêmicas ou estágios anteriores
-# Se ainda não tiver estágio formal, pode listar iniciação científica, empresa júnior, monitoria, etc.
 experiences:
-  - title: "Pesquisador de Iniciação Científica (IA e NLP)"
-    organization: "Laboratório de Inteligência Computacional - UNIFEI"
-    location: "Itajubá, MG"
-    start_date: "08/2024"
-    end_date: "Presente"
-    current: true
-    bullets:
-      - "Desenvolveu pipelines de processamento de texto e embeddings para recuperação semântica de artigos científicos."
-      - "Avaliou métricas de relevância e fidelidade em respostas de modelos de linguagem (LLMs) usando RAGAS."
-      - "Colaborou na escrita de artigo técnico submetido a simpósio nacional de informática."
-    technologies:
-      - "Python"
-      - "PyTorch"
-      - "Hugging Face"
-      - "LlamaIndex"
-      - "Git"
-
-  - title: "Membro Desenvolvedor / Trainee"
-    organization: "Empresa Júnior de Computação"
-    location: "São Paulo, SP"
-    start_date: "03/2023"
-    end_date: "07/2024"
+  - title: "Embedded Systems Researcher (Team Professionalizing Project)"
+    organization: "ENIB"
+    location: "Plouzané, France"
+    start_date: "09/2025"
+    end_date: "12/2025"
     current: false
     bullets:
-      - "Desenvolveu sistemas web e APIs RESTful para pequenas e médias empresas utilizando FastAPI e PostgreSQL."
-      - "Implementou testes unitários e boas práticas de integração contínua (CI/CD) com GitHub Actions."
-      - "Participou de cerimônias ágeis (Scrum/Kanban) em equipe multidisciplinar."
+      - "Co-designed a real-time data acquisition system for university mechanics laboratories based on two Raspberry Pi Pico 2 (RP2350) in a master-slave architecture."
+      - "Participated in custom PCB design using EasyEDA (multilayer routing, ground planes, signal integrity)."
+      - "Developed firmware in C using FreeRTOS (acquisition, communication, I/O), including deterministic master-slave SPI protocol and UART for real-time PC visualization."
     technologies:
-      - "Python"
-      - "FastAPI"
-      - "PostgreSQL"
-      - "Docker"
-      - "Git"
+      - "C"
+      - "FreeRTOS"
+      - "Raspberry Pi Pico (RP2350)"
+      - "SPI / UART / I2C / PIO"
+      - "EasyEDA"
+
+  - title: "Mobile Development & Data Science Manager"
+    organization: "Asimov Jr."
+    location: "MG, Brazil"
+    start_date: "12/2023"
+    end_date: "09/2025"
+    current: false
+    bullets:
+      - "Promoted from Mobile Developer to Mobile Area Manager (leading 5+ developers) and spearheaded the creation of the Data Science department from scratch. Awarded 'Member of the Month' and led the mobile team to win 'Area of the Month' for outstanding performance."
+      - "Managed and developed cross-platform mobile applications (Flutter, Dart, MongoDB), including a compliance and tracking system with REST APIs for agricultural processing, and a field data collection app for APERAM. Successfully delivered all projects with positive client reception."
+      - "Structured the Data Science area, developing training materials for new members. Delivered the department's first commercial project: automating spreadsheet data processing and generating business insights for a consulting firm using Python (Pandas, NumPy) and Power BI."
+    technologies:
+      - "Flutter / Dart"
+      - "Python (Pandas, NumPy)"
+      - "Power BI"
+      - "MongoDB"
+      - "REST APIs"
+      - "JavaScript"
+      - "Agile Project Management"
+
+  - title: "Presidency Officer / Board Member"
+    organization: "SPE (Society of Petroleum Engineers) UNIFEI"
+    location: "MG, Brazil"
+    start_date: "06/2024"
+    end_date: "03/2025"
+    current: false
+    bullets:
+      - "Served as an officer on the presidency team, coordinating and managing cross-functional tasks across multiple chapter project groups."
+      - "Organized cross-functional operations and logistics for student chapter events and academic seminars (e.g., Oil & Gas Week)."
+    technologies:
+      - "Stakeholder Management"
+      - "Event Organization"
+      - "Cross-functional Leadership"
+      - "Corporate Communication"
 
 # Projetos práticos e portfólio (GitHub, hackathons, projetos pessoais)
 projects:
-  - name: "Gerador de Currículos com RAG"
-    description: "Sistema inteligente para geração automatizada de currículos personalizados para vagas de estágio."
-    url: "https://github.com/samuel-dev/gerador-curriculos"
+  - name: "Resume RAG Generator"
+    description: "End-to-end RAG system generating grounded, tailored 1-page resumes with hybrid retrieval, rigorous evaluation, and LaTeX compilation."
+    url: ""
     highlight: true
     bullets:
-      - "Construiu pipeline RAG completo usando LlamaIndex, Google Gemini e ChromaDB para busca semântica híbrida."
-      - "Implementou extração de requisitos de vagas e otimização semântica alinhada a sistemas ATS de recrutamento."
-      - "Desenvolveu pipeline de compilação em LaTeX via Jinja2 garantindo formatação profissional em PDF de 1 página."
-      - "Interface interativa criada com Gradio para upload de vagas e visualização em tempo real."
+      - "Built an automated resume tailoring engine using LlamaIndex and Google Gemini, compiling ATS-formatted single-page PDFs via Tectonic LaTeX."
+      - "Implemented hybrid retrieval combining dense vector search (ChromaDB + Gemini embeddings) and BM25 lexical search with Reciprocal Rank Fusion (RRF)."
+      - "Architected a grounded evaluation framework validating claim faithfulness with decoupled judge models, synthetic lie injection testing, and render-time PII protection."
     technologies:
       - "Python"
       - "LlamaIndex"
       - "Google Gemini"
       - "ChromaDB"
-      - "Gradio"
-      - "LaTeX"
+      - "BM25"
+      - "LaTeX / Tectonic"
+      - "Docker"
+      - "pytest"
 
-  - name: "Classificador Semântico de Notícias Financeiras"
-    description: "Modelo de aprendizado supervisionado para análise de sentimento e impacto no mercado financeiro."
-    url: "https://github.com/samuel-dev/sentiment-news-nlp"
+  - name: "CAN Bus Sensor Network"
+    description: "Embedded data acquisition network centralizing information from multiple sensors to a Host PC via CAN bus."
+    url: "https://lnkd.in/es9Zi695"
+    highlight: true
+    bullets:
+      - "Implemented Node 3 sensor acquisition by configuring and reading an Invensense MPU9250 IMU via I2C in C/C++ on an STM32 Nucleo board."
+      - "Integrated the IMU sensor node into the team's distributed CAN bus architecture, encapsulating inertial data into structured CAN frames."
+    technologies:
+      - "C / C++"
+      - "STM32 Nucleo"
+      - "CAN Bus"
+      - "I2C"
+      - "MPU9250"
+
+  - name: "ROS 2 Mobile Robot"
+    description: "Three-mode mobile robot with manual control, random movement, and camera color tracking."
+    url: ""
+    highlight: true
+    bullets:
+      - "Developed the PC control interface to command the mobile robot and monitor its state for a robotics coursework project."
+      - "Established and configured the ROS 2 communication bridge connecting the host PC with the mobile robot."
+    technologies:
+      - "ROS 2"
+      - "C++ / Python"
+      - "STM32"
+      - "Raspberry Pi"
+      - "Computer Vision"
+
+  - name: "TinyML: Connected Bovine Collar"
+    description: "Smart device for real-time data acquisition and animal behavior classification."
+    url: ""
+    highlight: true
+    bullets:
+      - "Developed an Arduino-based device to capture real-time movement data."
+      - "Trained TinyML models using Edge Impulse, achieving 80% accuracy in real-time classification of bovine behaviors (walking, eating, standing, lying down)."
+    technologies:
+      - "Arduino"
+      - "Edge Impulse"
+      - "C++"
+      - "Machine Learning"
+
+  - name: "Bluetooth Biometric Authentication"
+    description: "Android application for biometric PC unlocking via Bluetooth."
+    url: ""
     highlight: false
     bullets:
-      - "Coletou e tratou mais de 50.000 notícias econômicas via web scraping automatizado."
-      - "Treinou modelos de classificação com scikit-learn e finetuning de BERT com acurácia de 88%."
-      - "Construiu dashboard interativo para visualização de métricas e tendências temporais."
+      - "Developed an Android app using Android Studio to authenticate users via fingerprint or pin code."
+      - "Implemented Bluetooth communication to decrypt files on a PC running a Java application."
     technologies:
-      - "Python"
-      - "Scikit-Learn"
-      - "Pandas"
-      - "Hugging Face Transformers"
-      - "Streamlit"
+      - "Java"
+      - "Android Studio"
+      - "Bluetooth"
+      - "Cryptography"
 
 # Habilidades técnicas e comportamentais
 skills:
   programming_languages:
     - "Python"
+    - "C / C++"
+    - "Java"
+    - "Dart"
+    - "JavaScript"
     - "SQL"
-    - "C/C++"
-    - "JavaScript/TypeScript"
 
   frameworks_and_libraries:
-    - "LlamaIndex"
-    - "LangChain"
     - "PyTorch"
+    - "TensorFlow"
     - "Scikit-Learn"
-    - "FastAPI"
     - "Pandas"
     - "NumPy"
+    - "OpenCV"
+    - "LlamaIndex"
+    - "Flutter"
+    - "Qt"
 
   databases:
+    - "MongoDB"
     - "PostgreSQL"
-    - "ChromaDB"
     - "SQLite"
-    - "Redis"
+    - "ChromaDB"
 
   tools_and_platforms:
-    - "Git"
-    - "GitHub"
+    - "ROS 2"
+    - "FreeRTOS"
+    - "Git / GitHub"
     - "Docker"
-    - "Linux (Ubuntu/Debian)"
-    - "LaTeX"
-    - "VS Code"
+    - "CMake"
+    - "Android Studio"
+    - "LLMs"
+    - "CAN Bus / I2C / SPI"
 
   soft_skills:
-    - "Trabalho em equipe"
-    - "Resolução analítica de problemas"
-    - "Comunicação técnica e interpessoal"
-    - "Autonomia e capacidade de aprendizado rápido"
-    - "Organização e proatividade"
+    - "Team Management"
+    - "Cross-functional Collaboration"
+    - "Problem Solving"
+    - "Project Management"
 
 # Idiomas e níveis de proficiência
 languages:
-  - language: "Português"
-    proficiency: "Nativo"
-  - language: "Inglês"
-    proficiency: "Avançado (C1) — Leitura técnica, escrita e conversação fluente"
-  - language: "Espanhol"
-    proficiency: "Básico"
+  - language: "Portuguese"
+    proficiency: "Native"
+  - language: "English"
+    proficiency: "Advanced (C1 - TOEIC)"
+  - language: "French"
+    proficiency: "Advanced"
 
 # Certificações, cursos livres ou workshops relevantes
-certifications:
-  - name: "Deep Learning Specialization"
-    issuer: "DeepLearning.AI / Coursera"
-    issue_date: "06/2024"
-    url: "https://coursera.org/verify/specialization/EXEMPLO"
-  - name: "Machine Learning with Python"
-    issuer: "IBM / Coursera"
-    issue_date: "12/2023"
-    url: "https://coursera.org/verify/EXEMPLO"
+certifications: []
 
 # Atividades extracurriculares, voluntariado, maratonas de programação
 additional_info:
-  - "Participação na Maratona SBC de Programação (Fase Regional 2023 e 2024)"
-  - "Voluntário em oficina de introdução à programação para alunos de escolas públicas"
+  - "Programming Marathons (Competitive Programming)"

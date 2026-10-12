@@ -2,6 +2,7 @@
 
 from src.generation.chain import (
     ResumeGenerationChain,
+    build_fallback_tailored_resume,
     extract_json_payload,
     get_gemini_llm,
     parse_tailored_resume,
@@ -22,6 +23,7 @@ __all__ = [
     "build_resume_generation_prompt",
     "get_resume_schema_description",
     "ResumeGenerationChain",
+    "build_fallback_tailored_resume",
     "parse_tailored_resume",
     "extract_json_payload",
     "get_gemini_llm",

@@ -233,3 +233,52 @@ def test_default_candidate_profile_yaml_loads() -> None:
     assert len(profile.projects) > 0
     assert len(profile.skills.programming_languages) > 0
     assert len(profile.languages) > 0
+
+
+def test_tailored_resume_multilingual_labels() -> None:
+    """Test that TailoredResume injects correctly translated and escaped labels for PT, EN, and FR."""
+    base_header = ResumeHeader(
+        full_name="Jean Dupont",
+        email="jean@example.com",
+        phone="+33 1 23 45 67 89",
+        location="Paris, France",
+    )
+
+    # 1. Portuguese
+    resume_pt = TailoredResume(
+        target_job_title="Estagiário de IA",
+        target_company="Empresa & Cia",
+        header=base_header,
+        language="pt",
+    )
+    ctx_pt = resume_pt.to_latex_context()
+    assert "labels" in ctx_pt
+    assert ctx_pt["labels"]["objective"] == "Objetivo Profissional"
+    assert ctx_pt["labels"]["education"] == "Formação Acadêmica"
+    assert ctx_pt["labels"]["languages_certs"] == r"Idiomas \& Certificações"
+
+    # 2. English
+    resume_en = TailoredResume(
+        target_job_title="AI Intern",
+        target_company="Company & Co",
+        header=base_header,
+        language="en",
+    )
+    ctx_en = resume_en.to_latex_context()
+    assert ctx_en["labels"]["objective"] == "Professional Summary"
+    assert ctx_en["labels"]["education"] == "Education"
+    assert ctx_en["labels"]["languages_certs"] == r"Languages \& Certifications"
+
+    # 3. French
+    resume_fr = TailoredResume(
+        target_job_title="Stagiaire IA",
+        target_company="Société & Fils",
+        header=base_header,
+        language="fr",
+    )
+    ctx_fr = resume_fr.to_latex_context()
+    assert ctx_fr["labels"]["objective"] == "Profil Professionnel"
+    assert ctx_fr["labels"]["education"] == "Formation"
+    assert ctx_fr["labels"]["experience"] == "Expérience Professionnelle"
+    assert ctx_fr["labels"]["languages_certs"] == r"Langues \& Certifications"
+    assert ctx_fr["labels"]["technologies"] == "Technologies :"

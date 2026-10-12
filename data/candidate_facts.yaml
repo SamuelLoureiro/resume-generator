@@ -1,0 +1,256 @@
+# ==============================================================================
+# CANDIDATE ATOMIC FACTS — VERIFIED GROUND TRUTH
+# ==============================================================================
+# This file contains the atomic factual claims verified by the candidate.
+# It serves as the authoritative source of truth for:
+#   1. Factual verification (detecting hallucinations and fabricated claims)
+#   2. Metric verification (ensuring numbers and percentages match real records)
+#   3. Verb scope ceiling (preventing verb inflation beyond truthful levels)
+#
+# SCOPE CEILING LADDER (Verb Ladder):
+#   Level 1: participated (participated in, assisted, supported, took part in)
+#   Level 2: contributed  (contributed to, co-designed, co-developed, helped build)
+#   Level 3: developed    (developed, built, implemented, integrated, trained, wrote)
+#   Level 4: led          (led, managed, owned, founded, directed, coordinated, spearheaded)
+#
+# NOTE FOR THE CANDIDATE:
+# Review and adjust any facts, scope ceilings, or metrics as needed.
+# ==============================================================================
+
+facts:
+  # ----------------------------------------------------------------------------
+  # EXPERIENCE: Asimov Jr. (Mobile Development & Data Science Manager)
+  # ----------------------------------------------------------------------------
+  - id: exp_asimov_leadership
+    source: "experience.asimov_jr.bullet_1"
+    text: "Promoted from Mobile Developer to Mobile Area Manager, leading a team of 5+ developers, and spearheaded the creation of the Data Science department."
+    scope_ceiling: 4
+    tracks: [backend, ai, data, core_swe, embedded]
+    priority: 1
+    metrics: ["5+ developers"]
+    tags: [leadership, management, mobile, data-science, team-management]
+
+  - id: exp_asimov_member_of_month
+    text: "Awarded Member of the Month at Asimov Jr. for individual performance."
+    scope_ceiling: 3
+    priority: 2
+    tracks: [backend, ai, data, core_swe, embedded]
+
+  - id: exp_asimov_mobile_area_of_month
+    text: "Led the mobile development team to win Area of the Month for outstanding organizational performance."
+    scope_ceiling: 4
+    priority: 1
+    tracks: [backend, ai, data, core_swe, embedded, mobile]
+
+  - id: exp_asimov_mobile_apps
+    source: "experience.asimov_jr.bullet_2"
+    text: "Managed and developed cross-platform mobile applications using Flutter and Dart with MongoDB backends and REST APIs, including an agricultural compliance system."
+    scope_ceiling: 3
+    tracks: [backend, core_swe, mobile]
+    priority: 1
+    metrics: []
+    tags: [flutter, dart, mongodb, rest-api, mobile-development]
+
+  - id: exp_asimov_aperam_client
+    source: "experience.asimov_jr.bullet_2"
+    text: "Delivered a commercial field data collection mobile application for client APERAM with positive client reception."
+    scope_ceiling: 3
+    tracks: [backend, core_swe, mobile]
+    priority: 2
+    metrics: []
+    tags: [flutter, dart, client-delivery, aperam]
+
+  - id: exp_asimov_data_science_structuring
+    source: "experience.asimov_jr.bullet_3"
+    text: "Structured the Data Science area and created comprehensive technical training materials for onboarding new members."
+    scope_ceiling: 4
+    tracks: [ai, data, backend]
+    priority: 2
+    metrics: []
+    tags: [data-science, training, onboarding, documentation]
+
+  - id: exp_asimov_consulting_project
+    source: "experience.asimov_jr.bullet_3"
+    text: "Delivered commercial data processing automation and business intelligence insights for a consulting firm using Python (Pandas, NumPy) and Power BI."
+    scope_ceiling: 3
+    tracks: [ai, data, backend]
+    priority: 1
+    metrics: []
+    tags: [python, pandas, numpy, power-bi, data-processing, bi]
+
+  # ----------------------------------------------------------------------------
+  # EXPERIENCE: ENIB (Embedded Systems Researcher - Team Project)
+  # ----------------------------------------------------------------------------
+  - id: exp_enib_system_codesign
+    source: "experience.enib.bullet_1"
+    text: "Co-designed a real-time data acquisition system for university mechanics laboratories based on two Raspberry Pi Pico 2 (RP2350) in a master-slave architecture."
+    scope_ceiling: 2
+    tracks: [embedded, core_swe, robotics]
+    priority: 1
+    metrics: []
+    tags: [raspberry-pi-pico, rp2350, embedded-systems, data-acquisition, master-slave]
+
+  - id: exp_enib_pcb_design
+    source: "experience.enib.bullet_2"
+    text: "Participated in custom PCB schematic design and routing using EasyEDA, maintaining signal integrity and ground plane layouts."
+    scope_ceiling: 1
+    tracks: [embedded, hardware]
+    priority: 2
+    metrics: []
+    tags: [pcb, easyeda, schematic, hardware-design]
+
+  - id: exp_enib_firmware
+    source: "experience.enib.bullet_3"
+    text: "Developed firmware in C using FreeRTOS (acquisition, communication, I/O), including deterministic master-slave SPI protocol and UART for real-time PC visualization."
+    scope_ceiling: 3
+    tracks: [embedded, core_swe, robotics]
+    priority: 1
+    metrics: []
+    tags: [c, freertos, raspberry-pi-pico, rp2350, spi, uart, embedded-systems, firmware]
+
+  # ----------------------------------------------------------------------------
+  # EXPERIENCE: SPE UNIFEI Student Chapter (Presidency Officer / Board Member)
+  # ----------------------------------------------------------------------------
+  - id: exp_spe_leadership
+    source: "experience.spe_unifei.bullet_1"
+    text: "Served as an officer on the presidency team / executive board, coordinating and managing cross-functional tasks across multiple chapter project groups."
+    scope_ceiling: 4
+    tracks: [management, core_swe, general]
+    priority: 2
+    metrics: []
+    tags: [leadership, management, board-member, coordination, cross-functional]
+
+  - id: exp_spe_event_org
+    source: "experience.spe_unifei.bullet_2"
+    text: "Organized cross-functional operations and logistics for student chapter events and academic seminars (e.g. Oil & Gas Week)."
+    scope_ceiling: 3
+    tracks: [management, general]
+    priority: 3
+    metrics: []
+    tags: [event-organization, operations, communication]
+
+  # ----------------------------------------------------------------------------
+  # PROJECTS: Resume RAG Generator
+  # ----------------------------------------------------------------------------
+  - id: proj_rag_resume_engine
+    source: "project.resume_rag.bullet_1"
+    text: "Built an automated resume tailoring engine using LlamaIndex and Google Gemini, compiling ATS-formatted single-page PDFs via Tectonic LaTeX."
+    scope_ceiling: 3
+    tracks: [ai, data, backend, core_swe]
+    priority: 1
+    metrics: ["1 page"]
+    tags: [python, llamaindex, gemini, rag, latex, tectonic, docker]
+
+  - id: proj_rag_hybrid_search
+    source: "project.resume_rag.bullet_2"
+    text: "Implemented hybrid retrieval combining dense vector search (ChromaDB + Gemini embeddings) and BM25 lexical search with Reciprocal Rank Fusion (RRF)."
+    scope_ceiling: 3
+    tracks: [ai, data, backend]
+    priority: 1
+    metrics: []
+    tags: [chromadb, bm25, rrf, vector-search, hybrid-search, embeddings]
+
+  - id: proj_rag_grounded_eval
+    source: "project.resume_rag.bullet_3"
+    text: "Architected a grounded evaluation framework validating claim faithfulness with decoupled judge models, synthetic lie injection testing, and render-time PII protection."
+    scope_ceiling: 3
+    tracks: [ai, backend, core_swe]
+    priority: 1
+    metrics: ["150+ tests"]
+    tags: [evaluation, testing, pytest, security, privacy, pii]
+
+  # ----------------------------------------------------------------------------
+  # PROJECTS: CAN Bus Sensor Network
+  # ----------------------------------------------------------------------------
+  - id: proj_can_imu_integration
+    source: "project.can_bus.bullet_1"
+    text: "Implemented Node 3 sensor acquisition by configuring and reading an Invensense MPU9250 IMU via I2C in C/C++ on an STM32 Nucleo board."
+    scope_ceiling: 3
+    tracks: [embedded, robotics, hardware]
+    priority: 1
+    metrics: []
+    tags: [mpu9250, i2c, imu, c, cpp, stm32, sensors]
+
+  - id: proj_can_network_integration
+    source: "project.can_bus.bullet_2"
+    text: "Integrated the IMU sensor node into the team's distributed CAN bus architecture, encapsulating inertial data into structured CAN frames."
+    scope_ceiling: 2
+    tracks: [embedded, core_swe, robotics]
+    priority: 1
+    metrics: []
+    tags: [can-bus, integration, embedded-systems]
+
+  # ----------------------------------------------------------------------------
+  # PROJECTS: ROS 2 Mobile Robot
+  # ----------------------------------------------------------------------------
+  - id: proj_ros2_pc_interface
+    source: "project.ros2_robot.bullet_1"
+    text: "Developed the PC control interface to command the mobile robot and monitor its state for a robotics coursework project."
+    scope_ceiling: 3
+    tracks: [robotics, core_swe, ai]
+    priority: 1
+    metrics: []
+    tags: [ros2, python, control-interface, robotics]
+
+  - id: proj_ros2_pc_robot_connection
+    source: "project.ros2_robot.bullet_2"
+    text: "Established and configured the ROS 2 communication connection between the host PC and the mobile robot."
+    scope_ceiling: 3
+    tracks: [robotics, core_swe, embedded]
+    priority: 1
+    metrics: []
+    tags: [ros2, networking, communication, robotics]
+
+  # ----------------------------------------------------------------------------
+  # PROJECTS: TinyML Bovine Collar
+  # ----------------------------------------------------------------------------
+  - id: proj_tinyml_firmware
+    source: "project.tinyml_collar.bullet_1"
+    text: "Developed Arduino-based firmware for real-time sensor data acquisition and on-device machine learning inference."
+    scope_ceiling: 3
+    tracks: [ai, embedded, iot]
+    priority: 1
+    metrics: []
+    tags: [arduino, cpp, tinyml, iot, sensors]
+
+  - id: proj_tinyml_model
+    source: "project.tinyml_collar.bullet_2"
+    text: "Trained TinyML models using Edge Impulse, achieving 80% accuracy in real-time classification of bovine behaviors."
+    scope_ceiling: 3
+    tracks: [ai, data, embedded]
+    priority: 1
+    metrics: ["80% accuracy"]
+    tags: [edge-impulse, machine-learning, classification, tinyml]
+
+  # ----------------------------------------------------------------------------
+  # PROJECTS: Bluetooth Biometric Authentication
+  # ----------------------------------------------------------------------------
+  - id: proj_bluetooth_android
+    source: "project.bluetooth_auth.bullet_1"
+    text: "Developed an Android application in Android Studio authenticating users via biometric fingerprint or PIN code."
+    scope_ceiling: 3
+    tracks: [core_swe, mobile, security]
+    priority: 2
+    metrics: []
+    tags: [android, java, biometric, mobile-development]
+
+  - id: proj_bluetooth_crypto
+    source: "project.bluetooth_auth.bullet_2"
+    text: "Implemented Bluetooth communication to decrypt sensitive files on a PC running a companion Java application."
+    scope_ceiling: 3
+    tracks: [core_swe, security, backend]
+    priority: 2
+    metrics: []
+    tags: [bluetooth, java, cryptography, desktop]
+
+  # ----------------------------------------------------------------------------
+  # ACADEMIC & EXTRACURRICULAR
+  # ----------------------------------------------------------------------------
+  - id: extra_competitive_programming
+    source: "additional_info.marathons"
+    text: "Participated in university competitive programming marathons solving algorithmic and data structure challenges."
+    scope_ceiling: 1
+    tracks: [core_swe, backend, algorithms]
+    priority: 2
+    metrics: []
+    tags: [competitive-programming, algorithms, data-structures]

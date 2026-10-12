@@ -333,3 +333,67 @@ def test_on_select_history_resume(tmp_path: Path) -> None:
     # Empty selection
     pdf_empty, tex_empty, blank = on_select_history_resume("", output_dir=out_dir)
     assert pdf_empty is None
+
+
+def test_generate_resume_action_with_v1_verifier(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test generate_resume_action invoking generate_v1 and formatting trace resolution."""
+    from unittest.mock import MagicMock
+    from llama_index.core.schema import NodeWithScore, TextNode
+    from src.app import generate_resume_action
+    from src.data.resume import ResumeHeader, TailoredResume
+    from src.generation.variants.v1_verified import V1Trace
+
+    mock_node = TextNode(
+        text="Quantify your achievements.",
+        metadata={"category": "resume_best_practices", "topic": "Quantify", "file_name": "01.md"},
+        id_="node_v1",
+    )
+    mock_pipeline = MagicMock()
+    mock_pipeline.retrieve_for_job.return_value = [NodeWithScore(node=mock_node, score=0.04)]
+
+    mock_resume = TailoredResume(
+        target_job_title="AI Intern",
+        target_company="HuggingFace",
+        header=ResumeHeader(
+            full_name="Samuel Silva",
+            email="samuel@example.com",
+            phone="+55 11 99999-9999",
+            location="Paris, France",
+        ),
+        objective_or_summary="Verified student focused on ML.",
+    )
+
+    mock_trace = V1Trace(
+        final_path="clean@1",
+        total_rounds=2,
+        repair_actions_count=0,
+    )
+
+    # Patch generate_v1 in src.app
+    monkeypatch.setattr("src.app.generate_v1", MagicMock(return_value=(mock_resume, mock_trace)))
+
+    fake_pdf = tmp_path / "v1_resume.pdf"
+    fake_pdf.write_bytes(b"%PDF-1.5 fake pdf content")
+    mock_formatter = MagicMock()
+    mock_formatter.render_latex.return_value = "\\documentclass{article}\\begin{document}V1\\end{document}"
+    mock_formatter.compile_pdf.return_value = fake_pdf
+
+    status, pdf_path, tex_path, info_md, guidelines, rendered_tex, table, dropdown = generate_resume_action(
+        uploaded_file=None,
+        job_title="AI Intern",
+        company="HuggingFace",
+        location="Paris",
+        work_model="Hybrid",
+        job_description="AI research internship",
+        technologies="Python, PyTorch",
+        pipeline=mock_pipeline,
+        chain=None,  # Triggers generate_v1
+        formatter=mock_formatter,
+    )
+
+    assert "Success!" in status
+    assert "Retry 1" in status or "clean@1" in status
+    assert "Verification Path:" in info_md and "clean@1" in info_md
+    assert "Verification & Faithfulness Summary" in guidelines
+    assert pdf_path == str(fake_pdf)
+

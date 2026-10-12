@@ -75,8 +75,8 @@ class KnowledgeBasePipeline:
         persist_dir: Path | str | None = None,
         collection_name: str = CHROMA_COLLECTION_NAME,
         embed_model: BaseEmbedding | None = None,
-        similarity_top_k: int = 5,
-        bm25_top_k: int = 5,
+        similarity_top_k: int = 8,
+        bm25_top_k: int = 8,
         knowledge_base_dir: Path | str | None = None,
     ) -> None:
         """Initialize KnowledgeBasePipeline with configurable settings.
@@ -141,8 +141,8 @@ class KnowledgeBasePipeline:
             logger.info("Found existing ChromaDB index at %s. Loading...", self.persist_dir)
             self._index = self.indexer.load_index()
         else:
-            logger.info("Building new ChromaDB index at %s...", self.persist_dir)
-            self._index = self.indexer.build_index(docs)
+            logger.info("Building new ChromaDB index at %s (force_reindex=%s)...", self.persist_dir, force_reindex)
+            self._index = self.indexer.build_index(docs, recreate=force_reindex)
 
         # 4. Initialize the Hybrid Retriever with Dense + Sparse components
         self._retriever = HybridResumeRetriever(
