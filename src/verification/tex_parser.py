@@ -224,13 +224,31 @@ def _parse_languages_and_certs(body: str, lang: str) -> tuple[list[ResumeLanguag
             continue
         if label == lang_label or not label:
             for item in split_top_level(text):
-                name, _, rest = item.partition(" (")
-                proficiency = rest[:-1] if rest.endswith(")") else rest
-                languages.append(
-                    ResumeLanguage(
-                        language=unescape_latex(name), proficiency=unescape_latex(proficiency)
-                    )
+                clean_item = item.strip()
+                multi_match = re.match(
+                    r"^(?P<lang>[^(]+?)\s*\((?P<lvl>[^)]+)\)\s*\((?P<cert>[^)]+)\)$",
+                    clean_item,
                 )
+                if multi_match:
+                    lang_name = unescape_latex(multi_match.group("lang").strip())
+                    lvl = unescape_latex(multi_match.group("lvl").strip())
+                    cert = unescape_latex(multi_match.group("cert").strip())
+                    languages.append(
+                        ResumeLanguage(
+                            language=lang_name,
+                            level=lvl,
+                            certificate=cert,
+                            proficiency=f"{lvl} ({cert})",
+                        )
+                    )
+                else:
+                    name, _, rest = clean_item.partition(" (")
+                    proficiency = rest[:-1] if rest.endswith(")") else rest
+                    languages.append(
+                        ResumeLanguage(
+                            language=unescape_latex(name), proficiency=unescape_latex(proficiency)
+                        )
+                    )
         elif label == cert_label:
             certs.extend(unescape_latex(c) for c in split_top_level(text, ";"))
     return languages, certs

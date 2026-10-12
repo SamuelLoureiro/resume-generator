@@ -229,3 +229,36 @@ def test_template_languages_certifications_conditional_headers() -> None:
     assert r"\section{Certifications}" in rendered
     assert r"\section{Languages \& Certifications}" not in rendered
     assert r"\section{Languages}" not in rendered
+
+
+def test_template_language_rendering_with_and_without_certificate() -> None:
+    """Test rendering template with language entries with and without certificate."""
+    template_path = Path("templates/resume.tex.j2")
+    env = jinja2.Environment(
+        block_start_string="<%",
+        block_end_string="%>",
+        variable_start_string="<<",
+        variable_end_string=">>",
+        comment_start_string="<#",
+        comment_end_string="#>",
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=False,
+    )
+    template = env.from_string(template_path.read_text(encoding="utf-8"))
+
+    resume = create_sample_tailored_resume()
+    resume.language = "en"
+    resume.languages = [
+        ResumeLanguage(language="Portuguese", level="Native"),
+        ResumeLanguage(language="English", level="B2", certificate="TOEIC"),
+        ResumeLanguage(language="French", level="B1"),
+    ]
+    rendered = template.render(**resume.to_latex_context())
+
+    assert "Portuguese (Native)" in rendered
+    assert "English (B2) (TOEIC)" in rendered
+    assert "French (B1)" in rendered
+    assert "((" not in rendered
+    assert "))" not in rendered
+

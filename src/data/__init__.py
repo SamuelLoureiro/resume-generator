@@ -26,6 +26,7 @@ from src.data.resume import (
     ResumeSkillCategory,
     TailoredResume,
     escape_latex,
+    format_language_entry,
 )
 from src.data.synthetic_profiles import (
     get_synthetic_fresh_grad,
@@ -57,5 +58,6 @@ __all__ = [
     "ResumeSkillCategory",
     "ResumeLanguage",
     "escape_latex",
+    "format_language_entry",
 ]
 

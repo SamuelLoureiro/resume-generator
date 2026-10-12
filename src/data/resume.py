@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Any, Literal, Self
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ResumeLanguageCode = Literal["pt", "en", "fr"]
 
@@ -58,6 +58,72 @@ SECTION_LABELS: dict[str, dict[str, str]] = {
         "present": "Présent",
     },
 }
+
+
+def format_language_entry(
+    language: str,
+    level: str | None = None,
+    certificate: str | None = None,
+    proficiency: str | None = None,
+) -> str:
+    """Build a standardized language display string with certificate in parentheses exactly once.
+
+    Args:
+        language: Language name (e.g. 'English', 'French').
+        level: Optional structured proficiency level (e.g. 'Native', 'B2', 'Advanced').
+        certificate: Optional certificate info (e.g. 'TOEIC', 'TOEIC 945').
+        proficiency: Legacy fallback proficiency string.
+
+    Returns:
+        str: Formatted language entry string, e.g. 'English (B2) (TOEIC)' or 'Portuguese (Native)'.
+    """
+    lang = language.strip()
+
+    raw_level = (level or "").strip()
+    raw_cert = (certificate or "").strip()
+
+    # If structured fields not provided, inspect legacy proficiency
+    if not raw_level and not raw_cert and proficiency:
+        raw_prof = proficiency.strip()
+        # Clean any accidental double parentheses, e.g. ((TOEIC...)) -> (TOEIC...)
+        raw_prof = re.sub(r"\(\(\s*(.*?)\s*\)\)", r"(\1)", raw_prof)
+        # Check for two separate parentheses e.g. "(B2) (TOEIC)" or "B2 (TOEIC)"
+        two_paren_match = re.match(
+            r"^(?:(?:\((?P<p1>[^)]+)\))|(?P<p1_bare>[^(]+?))\s*\((?P<p2>(?:TOEIC|TOEFL|IELTS|Cambridge|Cert)[^)]*)\)$",
+            raw_prof,
+            re.IGNORECASE,
+        )
+        if two_paren_match:
+            raw_level = (two_paren_match.group("p1") or two_paren_match.group("p1_bare")).strip()
+            raw_cert = two_paren_match.group("p2").strip()
+        else:
+            raw_level = raw_prof
+
+    # Strip outer parentheses from certificate if passed with them
+    clean_cert = re.sub(r"^[(\s]+|[)\s]+$", "", raw_cert)
+
+    # Strip outer parentheses from level if the ENTIRE level is enclosed
+    clean_level = raw_level
+    if clean_level.startswith("(") and clean_level.endswith(")") and clean_level.count("(") == 1:
+        clean_level = clean_level[1:-1].strip()
+
+    if clean_cert:
+        # Check if clean_level already contains clean_cert in parens
+        if f"({clean_cert})" in clean_level:
+            clean_level = re.sub(r"\(\(\s*(.*?)\s*\)\)", r"(\1)", clean_level)
+            return (
+                f"{lang} ({clean_level})"
+                if not (clean_level.startswith("(") and clean_level.endswith(")"))
+                else f"{lang} {clean_level}"
+            )
+        if clean_level:
+            return f"{lang} ({clean_level}) ({clean_cert})"
+        return f"{lang} ({clean_cert})"
+    elif clean_level:
+        if clean_level.startswith("(") and clean_level.endswith(")"):
+            return f"{lang} {clean_level}"
+        return f"{lang} ({clean_level})"
+    return lang
 
 
 def escape_latex(text: str) -> str:
@@ -247,13 +313,52 @@ class ResumeLanguage(BaseModel):
 
     Attributes:
         language: Language name.
-        proficiency: Fluency level.
+        proficiency: Fluency descriptor.
+        level: Optional structured proficiency level (e.g. 'Native', 'B2', 'Advanced').
+        certificate: Optional certificate info (e.g. 'TOEIC', 'TOEIC 945').
+        formatted: Formatted string ready for display.
     """
 
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
 
     language: str = Field(..., description="Language name")
-    proficiency: str = Field(..., description="Fluency descriptor")
+    proficiency: str = Field(default="", description="Fluency descriptor")
+    level: str | None = Field(default=None, description="Proficiency level (e.g. Native, B2, C1)")
+    certificate: str | None = Field(default=None, description="Certificate details (e.g. TOEIC)")
+    formatted: str = Field(
+        default="",
+        description="Formatted language line with certificate in parens exactly once",
+    )
+
+    @model_validator(mode="after")
+    def populate_formatted_and_proficiency(self) -> Self:
+        """Ensure formatted and proficiency strings are populated and clean."""
+        if not self.formatted:
+            self.formatted = format_language_entry(
+                language=self.language,
+                level=self.level,
+                certificate=self.certificate,
+                proficiency=self.proficiency,
+            )
+        if not self.proficiency:
+            if self.level and self.certificate:
+                clean_cert = re.sub(r"^[(\s]+|[)\s]+$", "", self.certificate)
+                self.proficiency = f"{self.level} ({clean_cert})"
+            elif self.level:
+                self.proficiency = self.level
+            elif self.certificate:
+                clean_cert = re.sub(r"^[(\s]+|[)\s]+$", "", self.certificate)
+                self.proficiency = f"({clean_cert})"
+        return self
+
+    def format_line(self) -> str:
+        """Format language line with certificate in parentheses exactly once."""
+        return self.formatted or format_language_entry(
+            language=self.language,
+            level=self.level,
+            certificate=self.certificate,
+            proficiency=self.proficiency,
+        )
 
 
 class TailoredResume(BaseModel):

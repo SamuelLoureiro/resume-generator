@@ -180,7 +180,7 @@
 \noindent
 <% endif %>
 <% for lang in languages %>
-<< lang.language >> (<< lang.proficiency >>)<% if not loop.last %>, <% endif %>
+<< lang.formatted | default(lang.language ~ ' (' ~ lang.proficiency ~ ')') >><% if not loop.last %>, <% endif %>
 <% endfor %><% if certifications %>\\[1.5pt]<% endif %>
 <% endif %>
 <% if certifications %>

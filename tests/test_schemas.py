@@ -15,11 +15,13 @@ from src.data import (
     ResumeEducation,
     ResumeExperience,
     ResumeHeader,
+    ResumeLanguage,
     ResumeProject,
     ResumeSkillCategory,
     Skills,
     TailoredResume,
     escape_latex,
+    format_language_entry,
 )
 
 
@@ -282,3 +284,37 @@ def test_tailored_resume_multilingual_labels() -> None:
     assert ctx_fr["labels"]["experience"] == "Expérience Professionnelle"
     assert ctx_fr["labels"]["languages_certs"] == r"Langues \& Certifications"
     assert ctx_fr["labels"]["technologies"] == "Technologies :"
+
+
+def test_language_structured_fields_and_formatting() -> None:
+    """Test building language line from structured fields with certificate in parentheses exactly once."""
+    # 1. Without certificate
+    lang_native = ResumeLanguage(language="Portuguese", level="Native")
+    assert lang_native.format_line() == "Portuguese (Native)"
+    assert lang_native.formatted == "Portuguese (Native)"
+
+    lang_b2 = ResumeLanguage(language="English", level="B2")
+    assert lang_b2.format_line() == "English (B2)"
+    assert lang_b2.formatted == "English (B2)"
+
+    # 2. With certificate (plain string)
+    lang_cert = ResumeLanguage(language="English", level="B2", certificate="TOEIC")
+    assert lang_cert.format_line() == "English (B2) (TOEIC)"
+    assert lang_cert.formatted == "English (B2) (TOEIC)"
+
+    # 3. With certificate that already had parentheses
+    lang_cert_parens = ResumeLanguage(language="English", level="B2", certificate="(TOEIC)")
+    assert lang_cert_parens.format_line() == "English (B2) (TOEIC)"
+
+    # 4. With certificate that had accidental double parentheses
+    lang_cert_double = ResumeLanguage(language="English", level="B2", certificate="((TOEIC))")
+    assert lang_cert_double.format_line() == "English (B2) (TOEIC)"
+
+    # 5. Legacy proficiency containing double parentheses: ((TOEIC...))
+    lang_legacy_double = ResumeLanguage(language="English", proficiency="B2 ((TOEIC))")
+    assert lang_legacy_double.format_line() == "English (B2) (TOEIC)"
+
+    # 6. Legacy proficiency containing standard CEFR parenthetical: "Advanced (C1)"
+    lang_legacy_cefr = ResumeLanguage(language="English", proficiency="Advanced (C1)")
+    assert lang_legacy_cefr.format_line() == "English (Advanced (C1))"
+
