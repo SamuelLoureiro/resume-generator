@@ -184,3 +184,77 @@ def test_repair_summary_reset() -> None:
     assert any(a.action == "reset_to_deterministic_objective" for a in log.actions)
     assert "15" not in (repaired.objective_or_summary or "")
     assert "Acme" in (repaired.objective_or_summary or "")
+
+
+def test_repair_backfills_underfilled_bullets_and_projects() -> None:
+    """Verifies that repair backfills verified bullets when count < 2 and backfills projects up to 3."""
+    profile = CandidateProfile.from_yaml("data/candidate_profile.yaml")
+    facts = load_candidate_facts("data/candidate_facts.yaml")
+    job = JobPosting(title="Embedded Software Intern", company="Acme", raw_description="C/C++ firmware")
+
+    resume = generate_b0(profile, job, language="en")
+    # Simulate an experience with only 1 bullet and only 1 project
+    resume.experiences[0].bullets = ["Single bullet"]
+    resume.projects = [resume.projects[0]]
+
+    repaired, log = repair_resume(resume, [], profile, facts)
+
+    # Experience backfilled to at least 2 bullets
+    assert len(repaired.experiences[0].bullets) >= 2
+    # Projects backfilled up to 3
+    assert len(repaired.projects) == 3
+    assert any(a.action == "restore_profile_project" for a in log.actions)
+
+
+def test_repair_french_resume_preserves_single_language() -> None:
+    """Verifies that repairing a French resume does not mix in English profile bullets."""
+    from src.verification.report import verify_resume
+
+    profile = CandidateProfile.from_yaml("data/candidate_profile.yaml")
+    facts = load_candidate_facts("data/candidate_facts.yaml")
+    job = JobPosting(title="Stage Ingénieur Embarqué", company="Thales", raw_description="Stage C/C++")
+
+    resume = generate_b0(profile, job, language="fr")
+    resume.objective_or_summary = (
+        "Étudiant en ingénierie informatique spécialisé dans le développement de micrologiciels en C et FreeRTOS."
+    )
+    for edu in resume.education:
+        edu.highlights = ["Cours pertinents : Architecture des ordinateurs, Systèmes temps réel"]
+    resume.experiences = [
+        ResumeExperience(
+            title="Embedded Systems Researcher (Team Professionalizing Project)",
+            organization="ENIB",
+            period="09/2025 - 12/2025",
+            bullets=[
+                "Développé un micrologiciel en C sous FreeRTOS incluant un protocole SPI maître-esclave déterministe.",
+                "Conçu un supercalculateur quantique avec 9999 cœurs.",  # defective
+            ],
+            technologies=["C", "FreeRTOS"],
+        )
+    ]
+    resume.projects = [
+        ResumeProject(
+            name="CAN Bus Sensor Network",
+            bullets=[
+                "Intégré le nœud de capteur IMU dans l’architecture de bus CAN distribuée en C/C++.",
+            ],
+            technologies=["C / C++", "CAN Bus"],
+        )
+    ]
+
+    issues = [
+        VerificationIssue(
+            kind="unsupported_number",
+            source="deterministic",
+            location="exp_0_bullet_1",
+            text="9999",
+            detail="Unsupported number",
+        )
+    ]
+
+    repaired, _ = repair_resume(resume, issues, profile, facts, job=job)
+    report = verify_resume(repaired, profile, facts, job=job)
+
+    assert len(repaired.experiences[0].bullets) == 1
+    assert report.hard_pass is True
+

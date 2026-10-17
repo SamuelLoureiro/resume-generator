@@ -19,7 +19,7 @@ A grounded, empirical RAG system that generates tailored resumes for internship 
 | Verification | Custom Deterministic + LLM Judge | M1 (Fabrication), M2 (Verb ladder), M4 (Keywords), M5 (Format) |
 | Output | LaTeX → PDF (Jinja2 + Tectonic) | Single-page ATS-optimized typographical output |
 | Interface | Gradio 6.28.0 | Web application with real-time PDF preview and transparency report |
-| Testing | pytest | 396 automated tests running 100% offline |
+| Testing | pytest | 424 automated tests running 100% offline |
 
 ## System Flow
 
@@ -81,11 +81,11 @@ gerador_curriculos/
 │   └── resume.tex.j2              # Multilingual Jinja2 LaTeX template
 ├── tests/
 │   ├── golden/                    # Golden set regression checks (Amazon SDE fixture)
-│   └── ...                        # 420 offline unit and integration tests
+│   └── ...                        # 425 offline unit and integration tests
 ├── docs/
 │   ├── architecture.md            # System architecture & stack
 │   ├── research_plan.md           # Research hypotheses and frozen decision protocol
-│   ├── decisions_log.md           # Architecture Decision Records (ADR-001 to ADR-025)
+│   ├── decisions_log.md           # Architecture Decision Records (ADR-001 to ADR-026)
 │   ├── development_diary.md       # Chronological development diary
 │   ├── lessons.md                 # Qualitative learnings
 │   └── experiments/               # Experiment reports (E00, E01, E02, E03, E04)

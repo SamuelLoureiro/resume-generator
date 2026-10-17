@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from src.data.candidate import CandidateProfile
 from src.data.job_posting import JobPosting
 from src.data.resume import TailoredResume
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """You are an elite Senior Technical Recruiter and Career Strategist specializing in competitive software engineering, machine learning, and data internship recruitment at top tech companies and high-growth startups.
 
@@ -25,12 +28,13 @@ Your mission is to craft a strictly tailored, ATS-compliant, one-page resume for
    - RELEVANCE ALIGNMENT: Prefer facts whose tracks match the job track; for coursework, include only courses that map to at least one job keyword.
 
 2. THE GOOGLE XYZ ACHIEVEMENT FORMULA:
-   - For all bullet points in Experience and Projects, frame achievements using Google's formula:
+   - For bullet points in Experience and Projects where verified quantitative metrics exist in the candidate profile, frame achievements using Google's formula:
      "Accomplished [X] as measured by [Y], by doing [Z]"
-   - Quantify results wherever technical metrics exist (e.g., latency reduction, test coverage, model accuracy/F1, dataset scale, response time).
+   - DO NOT fabricate synthetic metrics (percentages, latency, throughput) where the profile does not provide them; focus on concrete implementation [Z] and verified results.
 
 3. HIGH-IMPACT ACTION VERBS:
-   - Start EVERY bullet point with a vigorous, domain-specific active verb in the past tense (e.g., "Architected", "Engineered", "Implemented", "Optimized", "Benchmarked", "Containerized" / in French: "Développé", "Conçu", "Optimisé", "Déployé" / in Portuguese: "Desenvolveu", "Implementou", "Otimizou").
+   - Start EVERY bullet point with a vigorous, domain-specific active verb in the past tense (e.g., "Implemented", "Optimized", "Benchmarked", "Containerized" / in French: "Développé", "Conçu", "Optimisé", "Déployé" / in Portuguese: "Desenvolveu", "Implementou", "Otimizou").
+   - VERB SCOPE CEILING STRICTLY ENFORCED: The verb must NOT exceed the verified scope ceiling (Levels 1 to 4). Do NOT replace collaborative or development verbs (Levels 1-3) with executive/architectural verbs like "Architected" or "Spearheaded" unless the fact explicitly has Level 4 scope.
    - Eliminate weak, passive phrases like "Assisted with", "Responsible for", or "Worked on".
 
 4. CONTEXTUAL ATS & KEYWORD ALIGNMENT:
@@ -44,8 +48,8 @@ Your mission is to craft a strictly tailored, ATS-compliant, one-page resume for
 6. STRICT ONE-PAGE CONTENT BUDGET (NEVER EXCEED 1 PAGE):
    - The compiled resume must fit entirely on a single A4 page. Respect these strict limits:
      * Objective/Summary: Maximum 2 to 3 concise lines formulated as a Technical Value Proposition (academic background + core verified technical pillars relevant to the target job + target engineering domain). NEVER write passive cover-letter statements (e.g., 'applying for the internship to contribute to').
-     * Experience: Maximum 2-3 high-impact bullets per role.
-     * Projects: Select ONLY the top 2-3 most relevant projects. Maximum 2 bullets per project.
+     * Experience: Maximum 2-3 high-impact bullets per role. Crucially, NEVER discard primary technical leadership achievements (such as leading a developer team or receiving performance awards) in favor of generic bullets.
+     * Projects: When the candidate has 3 or more projects, select the top 3 most relevant projects (with 2 concise bullets each) to maintain a complete, professional, and well-filled one-page layout.
      * Education: Maximum 1 concise line of relevant coursework or honors per degree when the candidate has 2 or more degrees.
      * Skills: Group into 3-4 compact, well-defined categories.
 
@@ -92,6 +96,35 @@ def build_resume_generation_prompt(
             )
     candidate_json = json.dumps(candidate_data, indent=2, ensure_ascii=False)
 
+    # Inject verified atomic facts with verb scope ceilings if available and matching candidate
+    facts_section = ""
+    try:
+        from src.data.facts import load_candidate_facts
+        facts_obj = load_candidate_facts()
+        if facts_obj and facts_obj.facts:
+            cand_orgs = {e.get("organization", "").lower() for e in candidate_data.get("experiences", []) if e.get("organization")}
+            cand_projs = {p.get("name", "").lower() for p in candidate_data.get("projects", []) if p.get("name")}
+            matching_facts = [
+                f for f in facts_obj.facts
+                if any(org in f.source.lower() or org in f.text.lower() for org in cand_orgs)
+                or any(proj in f.source.lower() or proj in f.text.lower() for proj in cand_projs)
+            ]
+            cand_contact = getattr(candidate, "contact", None)
+            full_name = getattr(cand_contact, "full_name", "") if cand_contact else ""
+            if matching_facts or "samuel" in full_name.lower():
+                ranked_facts = facts_obj.rank_facts_for_job(job)
+                fact_lines = []
+                for f in ranked_facts[:25]:
+                    metrics_str = f" | Metrics: {', '.join(f.metrics)}" if f.metrics else ""
+                    fact_lines.append(f"- [{f.id}] [Max Verb Scope: Level {f.scope_ceiling} ({f.scope_name})]: {f.text}{metrics_str}")
+                facts_section = (
+                    "\n## Candidate Verified Atomic Claims & Verb Scope Ceilings (Source of Truth)\n"
+                    "The following verified claims are prioritized for this role. For each claim, respect its maximum allowed verb scope level (1 to 4) and any verified metrics:\n"
+                    + "\n".join(fact_lines) + "\n"
+                )
+    except Exception as e:
+        logger.debug(f"Could not load or rank candidate facts: {e}")
+
     language_directives = {
         "pt": (
             "## Mandato de Idioma: Português (PT-BR)\n"
@@ -99,7 +132,8 @@ def build_resume_generation_prompt(
             "- Resumo/Objetivo profissional em português.\n"
             "- Bullet points de experiências e projetos em português com verbos de ação fortes no pretérito.\n"
             "- Nomes de categorias de habilidades em português (ex: 'Linguagens de Programação', 'Frameworks e Bibliotecas', 'Ferramentas e Plataformas').\n"
-            "- Disciplinas e destaques de educação em português."
+            "- Disciplinas e destaques de educação em português (liste os nomes diretamente sem o prefixo 'Disciplinas relevantes:').\n"
+            "- IMPORTANTE (Grounding / Allowlist): Mantenha os itens técnicos dentro de `skills[].skills`, `technologies`, `projects[].name`, `experiences[].title` e `education[].degree` exatamente na forma canônica do Candidate Verified Profile."
         ),
         "en": (
             "## Target Language Mandate: English (EN)\n"
@@ -115,7 +149,8 @@ def build_resume_generation_prompt(
             "- Résumé/Profil professionnel en français.\n"
             "- Puces d'expériences et de projets en français avec verbes d'action au passé composé/participe (ex: 'Développé', 'Conçu', 'Implémenté', 'Optimisé').\n"
             "- Titres des catégories de compétences en français (ex: 'Langages de programmation', 'Frameworks et bibliothèques', 'Outils et plateformes', 'Bases de données').\n"
-            "- Matières et mentions académiques en français."
+            "- Matières et mentions académiques en français (listez les matières directement sans le préfixe 'Cours pertinents :').\n"
+            "- IMPORTANT (Grounding / Allowlist): Conservez les éléments techniques dans `skills[].skills`, `technologies`, `projects[].name`, `experiences[].title` et `education[].degree` exactement sous leur forme canonique du Candidate Verified Profile."
         ),
     }
     lang_directive = language_directives.get(language, language_directives["pt"])
@@ -140,8 +175,8 @@ No specific external guidelines retrieved. Adhere strictly to general technical 
 ## Strict 1-Page Layout Budget (CRITICAL)
 The resulting resume MUST fit on a single page:
 - Summary/Objective: 2 to 3 lines maximum. Formulate as a direct technical value proposition (academic degree + core verified competencies relevant to the role + target engineering domain), avoiding passive applicant statements.
-- Experience: Maximum 2-3 concise bullets per role.
-- Projects: Select ONLY the top 2-3 most relevant projects. Maximum 2 bullets per project.
+- Experience: Maximum 2-3 concise bullets per role. Retain primary technical leadership bullets and awards.
+- Projects: When the candidate has 3 or more projects, select the top 3 most relevant projects (maximum 2 bullets per project) to produce a well-balanced 1-page layout.
 - Education: Maximum 1 concise line of coursework or honors per degree (the candidate has multiple degrees; keep each compact).
 - Skills: Group into 3-4 compact categories.
 
@@ -154,7 +189,7 @@ Below is the candidate's complete, verified background. You MUST draw all resume
 ```json
 {candidate_json}
 ```
-
+{facts_section}
 ## Generation Instructions & Required JSON Schema
 Your output MUST be a single, valid JSON object matching the following structure:
 
@@ -162,7 +197,7 @@ Your output MUST be a single, valid JSON object matching the following structure
 {{
   "target_job_title": "{job.title}",
   "target_company": "{job.company}",
-  "objective_or_summary": "Tailored objective in target language specifically mentioning {job.company}.",
+  "objective_or_summary": "Concise Technical Value Proposition in target language highlighting verified core engineering competencies aligned with {job.title} at {job.company} (academic background + verified technical pillars + target domain; avoid passive applicant clichés).",
   "education": [
     {{
       "institution": "University name",

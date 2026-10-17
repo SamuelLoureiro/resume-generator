@@ -232,6 +232,18 @@ def test_build_resume_generation_prompt(
     assert "TailoredResume" in prompt
 
 
+def test_build_resume_generation_prompt_injects_atomic_facts(sample_job: JobPosting) -> None:
+    """Verifies that for candidate matching candidate_facts, verified claims and verb ceilings are injected."""
+    real_candidate = CandidateProfile.from_yaml("data/candidate_profile.yaml")
+    prompt = build_resume_generation_prompt(
+        candidate=real_candidate,
+        job=sample_job,
+    )
+    assert "Candidate Verified Atomic Claims & Verb Scope Ceilings" in prompt
+    assert "[Max Verb Scope: Level" in prompt
+    assert "Concise Technical Value Proposition" in prompt
+
+
 def test_contact_info_not_leaked_in_prompt(
     sample_candidate: CandidateProfile,
     sample_job: JobPosting,

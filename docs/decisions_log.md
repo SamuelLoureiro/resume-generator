@@ -453,6 +453,59 @@
   - *Using LLM for quote escaping and ROS 2 categorization:* Rejected due to stochastic categorization failures.
 
 
+### ADR-026: Resolution of Prompt Rigidity, Typographic Drops, Reverse Parser Over-Flagging, and Production Verifier Alignment
+
+- **Status:** Accepted
+- **Date:** 2026-10-16
+- **Context:**
+  - Real-world validation on an *Arm — Software Engineer Intern, Cloud Solutions / Firmware & Embedded Software (Sophia Antipolis, France)* job posting revealed four critical qualitative and mechanical failure modes:
+    1. **Missing Apostrophes & Quotes in Compiled PDF:** `convert_typographic_quotes()` mapped straight quotes/apostrophes (`'`, `"`) to Unicode curly quotes (`’`, `“`, `”`). However, because `templates/resume.tex.j2` loaded `\usepackage[T1]{fontenc}`, Tectonic (XeTeX engine) dropped unmapped 8-bit glyph slots, silently stripping apostrophes and quotes entirely (`ARM's` became `ARMs`, `Diplôme d'Ingénieur` became `Diplôme dIngénieur`, `team's` became `teams`).
+    2. **Reverse Parser False-Positive on Education Location:** `templates/resume.tex.j2` rendered `<< edu.institution >><% if edu.location %> -- << edu.location >><% endif %>`. The reverse parser `_parse_education` in `src/verification/tex_parser.py` greedily captured the entire string up to `\hfill` as `institution`. When checking against the candidate profile (`institution="ENIB"`), `verify_resume` flagged `"ENIB -- Plouzané, France"` as a fabricated educational institution (metric `M1c`).
+    3. **Prompt Conflicts & Premature Pruning (Prompt Rigidity):** Conflicting directives between Google XYZ ("quantify everything") and Zero Hallucination led the LLM to either fabricate synthetic metrics or prune rich collaborative experiences. Furthermore, candidate atomic facts ranked by `rank_facts_for_job()` were disconnected from `build_resume_generation_prompt()`, leaving the generator without explicit scope ceilings or prioritized factual claims. Consequently, the model discarded primary leadership achievements (e.g. leading 5+ developers at Asimov Jr.) in favor of generic bullets and generated only 2 projects, leaving the bottom third of the A4 page conspicuously blank.
+    4. **Emaciated Fallback/Repair Entries & Disconnected Production Judge:** In `repair_resume()`, dropping a single defective bullet left experiences or projects with only 1 weak bullet or empty space instead of backfilling truthful verified bullets from the candidate profile. In `build_fallback_tailored_resume()`, projects and bullets were chosen via naive `[:3]` / `[:2]` slicing rather than job relevance. Furthermore, in `src/app.py`, `generate_v1()` was called without instantiating `ClaimLevelJudge`, meaning atomic claim verification (M1d/B4) was silently bypassed in interactive Gradio runs.
+- **Decision:**
+  1. **Tectonic Typographic & French Ligature Preamble Mapping (`templates/resume.tex.j2`):**
+     - Retained `\usepackage[T1]{fontenc}` (preventing online font downloads) and registered active character catcodes in the LaTeX preamble:
+       `\catcode`’=\active \def’{'}`
+       `\catcode`‘=\active \def‘{`}`
+       `\catcode`“=\active \def“{``}`
+       `\catcode`”=\active \def”{''}`
+       `\catcode`œ=\active \defœ{\oe{}}`
+       `\catcode`Œ=\active \defŒ{\OE{}}`
+     - Guaranteed that all Unicode curly quotes, apostrophes, and French `œ`/`Œ` ligatures (e.g., `Nœud 3`, `nœud`) map cleanly to standard T1 ligatures, rendering correctly in PDF text without dropping characters or altering Pydantic schema contracts.
+  2. **Education Parser Location Splitting (`src/verification/tex_parser.py`):**
+     - Updated `_parse_education` to detect inline ` -- <location>` delimiters within `head.group("inst")` via `rsplit(" -- ", 1)`.
+     - Preserved both `institution` (`"ENIB"`) and `location` (`"Plouzané, France"`), eliminating the false-positive M1c fabrication failure while maintaining full bidirectional round-trip parity.
+  3. **De-Conflicted System Prompt, Atomic Fact Injection & Multilingual Allowlist Directives (`src/generation/prompts.py`):**
+     - Updated `SYSTEM_PROMPT` to explicitly subordinate Google XYZ to verified profile metrics (forbidding synthetic metrics) and strictly bind active verbs to verified Scope Levels 1–4 (preventing verb inflation to "Architected" or "Spearheaded" unless explicitly permitted by Level 4 ceilings).
+     - Mandated that when the candidate has $\ge 3$ projects, the top 3 projects (with 2 bullets each) must be selected to balance the 1-page layout budget.
+     - Mandated that primary leadership and award accomplishments must never be discarded.
+     - Injected `rank_facts_for_job()` into `build_resume_generation_prompt()` (listing prioritized claims with their maximum allowed verb scope levels and verified metrics), providing the LLM with explicit factual bounds upfront.
+     - Updated `language_directives["fr"]` and `language_directives["pt"]` to instruct the LLM to keep canonical allowlist identifiers (`skills[].skills`, `technologies`, `projects[].name`, `experiences[].title`, `education[].degree`) in their verified profile form while writing all narrative text in French/Portuguese, and to list translated coursework in `education[].highlights` without `"Cours pertinents :"` / `"Disciplinas relevantes:"` prefixes that would trigger false-positive M1c coursework mismatches.
+     - Replaced the passive summary prompt example with a direct Technical Value Proposition.
+  4. **Multilingual-Safe Surgical Repair & Relevance-Ranked Fallbacks (`src/verification/repair.py`, `src/generation/chain.py`):**
+     - Updated `repair_resume()` so that for English (`language="en"`) resumes, when a defective bullet is dropped and an experience or project has $< 2$ bullets, it automatically backfills verified bullets from `matched_p_exp.bullets` / `matched_p_proj.bullets` and backfills up to 3 projects from `profile.projects` (ranked by job keyword/tech overlap).
+     - Prevented cross-language contamination on French (`fr`) and Portuguese (`pt`) resumes: when `resume.language != "en"`, `repair_resume()` never injects raw English bullets from `candidate_profile.yaml` into an entry that already has $\ge 1$ valid target-language bullet (which previously caused `M5 single_language` to fail and forced a fallback to English `B0`). If all bullets of an entry are dropped in `fr`/`pt`, it synthesizes a deterministic, number-free Level 2 bullet in the target language using only that entry's verified `technologies`.
+     - Added coursework label stripping/filtering and `fabricated_keyword` (`M4`) scrubbing to `repair_resume()`.
+     - Fixed education location assignment in `repair_resume` (`location=getattr(matched_p_edu, "location", None) or edu.location`).
+     - Aligned deterministic summary reset to generate a Technical Value Proposition across PT, EN, and FR.
+     - Updated `build_fallback_tailored_resume()` in `src/generation/chain.py` to rank candidate projects and experience bullets by job relevance and leadership priority rather than blind slicing.
+  5. **Production Verifier Alignment (`src/app.py`):**
+     - Wired `ClaimLevelJudge` into the live `generate_resume_action()` call in `src/app.py`, ensuring that real-world interactive generations in Gradio execute full atomic claim auditing (M1d/B4) identically to benchmark runners.
+  6. **Regression Suite Expansion & Live Real-World Web Validation (`runs/real_web_validation_20261016/manifest.json`):**
+     - Added comprehensive offline tests in `tests/test_template.py`, `tests/test_verification_tex_parser.py`, `tests/test_repair.py`, and `tests/test_generation.py`. Full test suite stands at **425 passed offline tests**.
+     - Validated via live API generation (`gemini-3.5-flash-lite` generator + `gemini-3.1-flash-lite` claim judge) on 3 real-world internship postings fetched from the web:
+       1. **Arm (`en`)** — *Software Engineer Intern (Cloud Solutions / Firmware & Embedded Software, Sophia Antipolis)*: `clean@2`, `hard_pass=True`, `defect_free=True`, 1 page, 0 unsupported claims, 0 inflated verbs, 81.8% must-have fact coverage (9/11), 100% supportable keyword alignment (`C`, `C++`, `Firmware`, `Git`), 2 experiences (3 bullets each) + 3 projects (2 bullets each).
+       2. **Airbus Defence and Space (`fr`, `JR10444757`)** — *Stage 2027 - Ingénieur Systèmes Embarqués pour Applications Spatiales H/F (Élancourt)*: `clean@2`, `hard_pass=True`, `defect_free=True`, 1 page, 0 unsupported claims, 0 inflated verbs, 100% supportable keyword alignment (`C`, `Git`, `Python`), 2 experiences (3 bullets each in French) + 3 projects (2 bullets each in French), with `Nœud 3` and `Diplôme d’Ingénieur` rendered intact.
+       3. **Thales (`fr`, `R0341251`)** — *STAGE - Intégration et développement embarqué - F/H (Rungis)*: `clean@1`, `hard_pass=True`, `defect_free=True`, 1 page, 0 unsupported claims, 0 inflated verbs, 100% supportable keyword alignment (`C`, `Python`, `Docker`, `Git`), 3 experiences (8 bullets in French) + 3 projects (6 bullets in French).
+- **Rationale:** Restores visual and typographical fidelity in compiled PDFs across English, French, and Portuguese, eliminates false-positive verification rejections, prevents prompt paralysis between conflicting instructions, guarantees a filled 1-page layout without hallucination, and ensures production Gradio runs execute full verification.
+- **Alternatives rejected:**
+  - *Disabling fontenc in LaTeX:* Triggers online font downloads (`.otf` files) in Tectonic, which violates the strict offline requirement.
+  - *Hardcoding Arm job keywords in generation prompt:* Rejected because prompt changes must remain domain-agnostic and generalize across all engineering roles.
+  - *Backfilling raw English profile bullets into non-English (`fr`/`pt`) resumes during repair:* Rejected because mixing English bullets into a French or Portuguese resume violates `M5 (single_language)` and forces a fallback to `B0`.
+
+
+
 
 
 

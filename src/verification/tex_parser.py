@@ -146,14 +146,23 @@ def _parse_education(body: str) -> list[ResumeEducation]:
         head = re.match(r"\s*,\s*(?P<inst>.*?)\s*\\hfill", rest, re.DOTALL)
         period = _HFILL_RE.search(rest)
         loc = _LOCATION_RE.search(rest)
+        raw_inst = head.group("inst") if head else ""
+        inline_loc: str | None = None
+        if " -- " in raw_inst:
+            raw_inst, inline_loc = raw_inst.rsplit(" -- ", 1)
+        loc_val = (
+            unescape_latex(loc.group("loc"))
+            if loc
+            else (unescape_latex(inline_loc) if inline_loc else None)
+        )
         raw_period = unescape_latex(period.group("period")) if period else ""
         norm_period = re.sub(r"\s*(?:[–—]|--|-)\s*", " - ", raw_period).strip()
         entries.append(
             ResumeEducation(
-                institution=unescape_latex(head.group("inst")) if head else "",
+                institution=unescape_latex(raw_inst),
                 degree=unescape_latex(m.group("title")),
                 period=norm_period,
-                location=unescape_latex(loc.group("loc")) if loc else None,
+                location=loc_val,
                 highlights=_items(rest),
             )
         )

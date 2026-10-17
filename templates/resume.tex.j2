@@ -3,6 +3,13 @@
 % --- PACOTES BÁSICOS E TIPOGRAFIA ---
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+% Map Unicode curly quotes/apostrophes and French oe ligatures to standard T1 ligatures so XeTeX/Tectonic renders them
+\catcode`’=\active \def’{'}
+\catcode`‘=\active \def‘{`}
+\catcode`“=\active \def“{``}
+\catcode`”=\active \def”{''}
+\catcode`œ=\active \defœ{\oe{}}
+\catcode`Œ=\active \defŒ{\OE{}}
 \usepackage[margin=0.46in, top=0.40in, bottom=0.40in]{geometry}
 \usepackage{titlesec}
 \usepackage{enumitem}

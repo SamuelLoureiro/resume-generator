@@ -329,24 +329,54 @@ def build_fallback_tailored_resume(
             )
         )
 
+    # Extract job tokens for ranking fallback items
+    job_tokens = set()
+    if hasattr(job, "technologies") and job.technologies:
+        job_tokens.update(t.lower() for t in job.technologies)
+    if hasattr(job, "keywords") and job.keywords:
+        job_tokens.update(k.lower() for k in job.keywords)
+    if hasattr(job, "title") and job.title:
+        job_tokens.update(str(job.title).lower().split())
+
     experience_entries = []
     for exp in candidate.experiences:
         period_str = f"{exp.start_date} - {exp.end_date}".strip(" -")
         if exp.current:
             period_str = f"{exp.start_date} - {present_str}"
+
+        # Prioritize leadership and job-relevant bullets
+        def _exp_bullet_score(b: str) -> float:
+            b_low = b.lower()
+            score = 0.0
+            if any(term in b_low for term in ("lead", "lider", "leader", "gestão", "coorden", "premi", "award", "destaque")):
+                score += 5.0
+            score += sum(1.5 for tok in job_tokens if len(tok) > 2 and tok in b_low)
+            return score
+
+        sorted_exp_bullets = sorted(exp.bullets, key=_exp_bullet_score, reverse=True)
         experience_entries.append(
             ResumeExperience(
                 title=exp.title,
                 organization=exp.organization,
                 period=period_str or present_str,
                 location=exp.location,
-                bullets=list(exp.bullets)[:2],
+                bullets=list(sorted_exp_bullets)[:2],
                 technologies=list(exp.technologies),
             )
         )
 
+    # Rank projects by technical and keyword overlap with the target job
+    def _proj_score(proj: Any) -> float:
+        score = 0.0
+        proj_techs = {t.lower() for t in getattr(proj, "technologies", [])}
+        score += len(proj_techs & job_tokens) * 2.5
+        proj_text = " ".join(getattr(proj, "bullets", [])).lower()
+        score += sum(1.0 for tok in job_tokens if len(tok) > 2 and tok in proj_text)
+        return score
+
+    sorted_projects = sorted(candidate.projects, key=_proj_score, reverse=True)
     project_entries = []
-    for proj in candidate.projects[:3]:
+    for proj in sorted_projects[:3]:
         project_entries.append(
             ResumeProject(
                 name=proj.name,

@@ -813,6 +813,50 @@
 - **Challenges:** Stemming interactions in text utils where `stem_token("rtos")` produces `"rto"`, causing substring false matches; resolved by generic token filtering and semantic phrase bridges.
 - **Next steps:** Human review of `docs/proposals/ADR-025_data_proposals.md` and human authoring of interpretation in `docs/experiments/E04_defect_fixes.md`.
 
+## 2026-10-16 — ADR-026: Resolution of Prompt Rigidity, Typographic Drops, Reverse Parser Over-Flagging, and Production Verifier Alignment
+- **What was done:**
+  - Resolved Tectonic XeTeX Unicode Dropped Characters & French Ligatures (`templates/resume.tex.j2`):
+    - Added active character catcode mappings in the LaTeX preamble for Unicode typographic quotes/apostrophes (`’`, `‘`, `“`, `”`) and French `œ`/`Œ` ligatures (`\oe{}`, `\OE{}`) to standard T1 fontenc ligatures.
+    - Preserved offline compilation guarantees (no `.otf` font downloads) while ensuring `ARM's`, `Diplôme d'Ingénieur`, `Nœud 3`, and `nœud` render intact in compiled PDF text.
+    - Added offline PDF compilation test with `pdftotext` verification in `tests/test_template.py`.
+  - Fixed Reverse Parser False-Positive on Education Location (`src/verification/tex_parser.py`):
+    - Updated `_parse_education` to detect inline ` -- <location>` strings within `head.group("inst")` via `rsplit(" -- ", 1)`.
+    - Preserved both `institution` and `location`, eliminating false-positive `M1c` fabrication errors when verifying compiled resumes against the profile.
+    - Added round-trip test in `tests/test_verification_tex_parser.py`.
+  - De-Conflicted Generation Prompt, Atomic Fact Injection & Multilingual Allowlist Directives (`src/generation/prompts.py`):
+    - De-conflicted `SYSTEM_PROMPT` mandates: explicitly subordinated Google XYZ to verified profile metrics (blocking synthetic metric hallucinations) and strictly bound active verbs to verified Scope Levels 1–4 (preventing verb inflation to "Architected" or "Spearheaded").
+    - Mandated selection of top 3 projects (with 2 bullets each) when candidate has $\ge 3$ projects, ensuring complete one-page budget coverage without empty vertical space.
+    - Mandated preservation of primary leadership accomplishments and awards.
+    - Connected `rank_facts_for_job()` to `build_resume_generation_prompt()`, injecting prioritized atomic claims with their verb scope ceilings and verified metrics directly into the LLM context.
+    - Updated `language_directives["fr"]` and `language_directives["pt"]` to instruct the LLM to keep canonical technical allowlist identifiers (`skills[].skills`, `technologies`, `projects[].name`, `experiences[].title`, `education[].degree`) in their verified profile form while writing all narrative text in French/Portuguese, and to list translated coursework without `"Cours pertinents :"` / `"Disciplinas relevantes:"` prefixes.
+    - Updated prompt schema example to guide the model toward a concise Technical Value Proposition rather than passive applicant clichés.
+    - Added unit test in `tests/test_generation.py`.
+  - Multilingual-Safe Surgical Repair & Ranked Fallback Selection (`src/verification/repair.py`, `src/generation/chain.py`):
+    - Updated `repair_resume()` to automatically backfill verified bullets from the candidate profile when an English entry is left with $< 2$ bullets after dropping defective claims (`restore_profile_bullets`) and backfill up to 3 projects from `profile.projects` (`restore_profile_project`).
+    - Prevented cross-language bullet injection on non-English (`fr`/`pt`) resumes so `repair_resume()` never mixes English profile bullets into French/Portuguese resumes (preserving `M5 single_language`), and added coursework label cleaning and `fabricated_keyword` (`M4`) scrubbing.
+    - Corrected education location assignment in `repair_resume` (`location=getattr(matched_p_edu, "location", None) or edu.location`).
+    - Aligned deterministic summary reset to generate a Technical Value Proposition across PT, EN, and FR.
+    - Updated `build_fallback_tailored_resume()` in `src/generation/chain.py` to rank candidate projects and experience bullets by job keyword/tech overlap and leadership priority rather than arbitrary slicing.
+    - Added unit tests in `tests/test_repair.py` (including `test_repair_french_resume_preserves_single_language`).
+  - Production Verifier Alignment (`src/app.py`):
+    - Wired `ClaimLevelJudge` into the live `generate_resume_action()` call in `src/app.py`, ensuring real-world interactive generations in Gradio execute full atomic claim auditing (M1d/B4) identically to benchmark runners.
+  - Live Real-World Web Validation & Test Suite (`runs/real_web_validation_20261016/manifest.json`):
+    - Executed full offline test suite: **425/425 tests passing** offline in 57.42s (420 existing + 5 new tests).
+    - Ran live end-to-end generation (`gemini-3.5-flash-lite` generator + `gemini-3.1-flash-lite` claim judge) on 3 real-world internship postings fetched from the web:
+      1. **Arm (`en`)** — *Software Engineer Intern (Sophia Antipolis, France)*: `clean@2`, `hard_pass=True`, `defect_free=True`, 1 page (`output/resume_arm_20261016_150513.pdf`), 0 unsupported claims, 0 inflated verbs, 81.8% must-have fact coverage (9/11), 100% keyword alignment (`C`, `C++`, `Firmware`, `Git`), 2 experiences (3 bullets each) + 3 projects (2 bullets each).
+      2. **Airbus Defence and Space (`fr`, `JR10444757`)** — *Stage 2027 - Ingénieur Systèmes Embarqués pour Applications Spatiales H/F (Élancourt, France)*: `clean@2`, `hard_pass=True`, `defect_free=True`, 1 page (`output/resume_airbus_defence_and_space_20261016_150845.pdf`), 0 unsupported claims, 0 inflated verbs, 100% keyword alignment (`C`, `Git`, `Python`), 2 experiences (3 bullets each in French) + 3 projects (2 bullets each in French), with `Nœud 3` and `Diplôme d’Ingénieur` rendered intact.
+      3. **Thales (`fr`, `R0341251`)** — *STAGE - Intégration et développement embarqué - F/H (Rungis, France)*: `clean@1`, `hard_pass=True`, `defect_free=True`, 1 page (`output/resume_thales_20261016_153658.pdf`), 0 unsupported claims, 0 inflated verbs, 100% keyword alignment (`C`, `Python`, `Docker`, `Git`), 3 experiences (8 bullets in French) + 3 projects (6 bullets in French).
+    - Documented ADR-026 in `docs/decisions_log.md` and synchronized `docs/architecture.md`.
+- **Decisions made:**
+  - Kept Unicode curly quotes and French `œ`/`Œ` ligatures in the data layer while solving rendering in the LaTeX preamble, preserving bidirectional schema invariance and avoiding network font downloads.
+  - Backfilled verified profile bullets and projects for English resumes while keeping non-English (`fr`/`pt`) repairs strictly single-language so `M5 (single_language)` never fails after deterministic surgery.
+  - Bound prompt active verbs strictly to verified scope levels (1–4) to prevent the LLM from fabricating seniority.
+- **Model used:** Gemini 3.8 Flash (High), Gemini 3.5 Flash Lite (generator), Gemini 3.1 Flash Lite (judge), Tectonic 0.15.0.
+- **Challenges:**
+  - Live French validation exposed two subtle multilingual edge cases: (1) Tectonic under `[T1]{fontenc}` dropped the French `œ` ligature (`Nœud 3` -> `Nud 3`), and (2) an initial `504 Deadline Exceeded` timeout on Thales Retry 2 triggered `repair_resume()`, which previously backfilled English profile bullets into a French resume and caused `M5 (single_language)` to fail. Both were resolved and verified both offline and via live re-generation.
+- **Next steps:** Ready for human review of the 3 generated real-world PDFs (`Arm`, `Airbus Defence and Space`, `Thales`).
+
+
 
 
 

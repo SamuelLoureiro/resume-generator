@@ -331,3 +331,38 @@ def test_enib_header_does_not_wrap_to_second_line(tmp_path: Path) -> None:
         assert "ENIB" in degree_line
 
 
+def test_tectonic_preserves_apostrophes_and_curly_quotes(tmp_path: Path) -> None:
+    """Verifies that Tectonic compiles apostrophes and quotes (e.g. ARM's, Diplôme d'Ingénieur, “quotes”) into PDF text."""
+    from src.generation.formatter import ResumeFormatter
+
+    resume = create_sample_tailored_resume()
+    resume.objective_or_summary = "Targeting ARM’s Cloud Solutions team to contribute to the company’s firmware."
+    resume.education = [
+        ResumeEducation(
+            degree="Diplôme d’Ingénieur",
+            institution="ENIB",
+            location="Plouzané, France",
+            period="09/2025 - 08/2027",
+            highlights=["“Embedded Systems” and Microcontrollers"],
+        )
+    ]
+    formatter = ResumeFormatter(output_dir=tmp_path)
+    pdf_path = formatter.compile_pdf(resume)
+    assert pdf_path.exists()
+
+    pdftotext_bin = shutil.which("pdftotext")
+    if pdftotext_bin:
+        proc = subprocess.run(
+            [pdftotext_bin, "-layout", str(pdf_path), "-"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        pdf_text = proc.stdout
+        assert "ARM's" in pdf_text or "ARM’s" in pdf_text
+        assert "d'Ingénieur" in pdf_text or "d’Ingénieur" in pdf_text
+        assert "company's" in pdf_text or "company’s" in pdf_text
+        assert "Embedded Systems" in pdf_text
+
+
+

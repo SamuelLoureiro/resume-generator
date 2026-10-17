@@ -420,11 +420,19 @@ def generate_resume_action(
             active_chain = ResumeGenerationChain(
                 llm=get_gemini_llm(model_name=selected_model, temperature=selected_temp)
             )
+            active_judge = None
+            try:
+                from src.evaluation.claim_judge import ClaimLevelJudge
+                active_judge = ClaimLevelJudge()
+            except Exception as e:
+                logger.warning("Could not initialize ClaimLevelJudge for production generation: %s", e)
+
             tailored_resume, trace = generate_v1(
                 candidate=candidate,
                 job=job,
                 pipeline=active_pipeline,
                 chain=active_chain,
+                judge=active_judge,
                 top_k=int(top_k),
                 language=resume_language,
             )

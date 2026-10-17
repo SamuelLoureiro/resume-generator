@@ -143,3 +143,23 @@ def test_parser_keeps_raw_unschemed_urls_visible_to_the_url_check() -> None:
     tex = (FIXTURES_DIR / "bad_amazon_resume.tex").read_text(encoding="utf-8")
     assert find_unschemed_links(tex) == ["linkedin.com/in/samuelamadeuloureiro", "github.com/SamuelLoureiro"]
     assert parse_tex_resume(tex).header.linkedin_url.startswith("https://")  # model repairs it silently
+
+
+def test_education_inline_location_parsing(formatter: ResumeFormatter) -> None:
+    """Verifies that inlined location (e.g. ENIB -- Plouzané, France) is parsed into location and doesn't pollute institution."""
+    original = make_resume(
+        education=[
+            ResumeEducation(
+                institution="ENIB",
+                degree="Diplôme d'Ingénieur",
+                period="09/2023 - 07/2026",
+                location="Plouzané, France",
+                highlights=["Specialization in Embedded Systems"],
+            )
+        ]
+    )
+    tex = formatter.render_latex(original)
+    parsed = parse_tex_resume(tex)
+    assert len(parsed.education) == 1
+    assert parsed.education[0].institution == "ENIB"
+    assert parsed.education[0].location == "Plouzané, France"
